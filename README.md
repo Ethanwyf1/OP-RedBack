@@ -1,66 +1,68 @@
-# OP-RedBack
+\# OP-RedBack
 
-## 📁 Project Documentation (Sprint 1)
+Welcome to the official repository for the **OPTIMA Python-Native Dashboard Project**. This project aims to replace the existing MATLAB-based system used by OPTIMA researchers with an interactive, modular, and user-friendly Python-based dashboard.
 
-All wiki pages have been copied to the [`docs/`](./docs/) folder as Markdown files.
+---
 
-To help navigate them, see the [Documentation Index](./docs/README.md).
+## 📌 Project Overview
 
-### Branching Strategy: GitFlow
+The goal of this project is to create a dashboard that visualizes and supports the Instance Space Analysis (ISA) workflow using Python technologies like Streamlit. It enables researchers to:
 
-This branching strategy consists of the following branches:
+- Visualize and analyze algorithm performance across different stages
+- Interact with projection data and adjust parameters iteratively
+- Explore and filter datasets without deep technical overhead
 
+---
 
-- Master 
-- Develop
-- Feature- to develop new features that branches off the develop branch 
-- Release- help prepare a new production release; usually branched from the develop branch and must be merged back to both develop and master
-- Hotfix- also helps prepare for a release but unlike release branches, hotfix branches arise from a bug that has been discovered and must be resolved; it enables developers to keep working on their own changes on the develop branch while the bug is being fixed.
+## 🗂️ Repository Structure
 
-### 🚀 Commit Guidlines
+```bash
+├── docs/                # Documentation files (copied from the Wiki)
+├── src/                 # Source code (to be added in Sprint 2)
+└── README.md            # Overview, repo layout, guidelines, and changelog
+```
 
-Each commit message should follow this format:
+- `docs/` contains project documentation such as user stories, meeting notes, requirements, and the motivational model.
+- `src/` will contain Python source code, visualizations, and Streamlit app components in Sprint 2.
+- `README.md` is updated across sprints and contains this project summary, structure, workflow, and changelog.
 
+---
+
+## 🚦 GitHub Workflow (Sprint 1)
+
+We follow a **GitFlow**-based branching strategy:
+
+- `master` – stable release
+- `develop` – main development branch
+- `feature/<name>` – for new features
+- `release/<sprint>` – for packaging deliverables
+- `hotfix/<issue>` – for urgent fixes
+
+✅ Commit messages follow this format:  
 `<type>(<scope>): <short description>`
 
+| Type      | Description                            |
+|-----------|----------------------------------------|
+| feat      | New feature                            |
+| fix       | Bug fix                                |
+| docs      | Documentation only                     |
+| style     | Formatting, no logic change            |
+| refactor  | Code restructuring without behavior    |
+| test      | Adding or updating tests               |
+| chore     | Maintenance tasks                      |
 
 ---
 
-#### **1️⃣ Commit Type**
+## 🧭 Sprint 1 Deliverables
 
-| Type       | Purpose |
-|------------|--------------------------------------------------------------|
-| `feat`     | Introduces a new feature (e.g., UI component, caching system). |
-| `fix`      | Fixes a bug or issue (e.g., broken visualization, security bug). |
-| `refactor` | Improves existing code without changing functionality. |
-| `perf`     | Performance improvements (e.g., optimizing rendering speed). |
-| `docs`     | Documentation updates (e.g., README, API reference). |
-| `style`    | Code style changes (e.g., formatting, linting, no logic change). |
-| `test`     | Adding or modifying tests (e.g., unit tests for visualization). |
-| `chore`    | Maintenance tasks (e.g., dependency updates, build scripts). |
+All wiki pages have been exported to `docs/` as Markdown files.
+
+📄 View the full documentation index here:  
+[Documentation Index](./docs/README.md)
 
 ---
 
-#### **2️⃣ Scope (Which part of the project does it affect?)**
-
-Examples of scopes to use within commit messages:
-
-- `ui` – User interface components  
-- `backend` – Data handling, security, caching  
-- `viz` – Data visualization, plots, graphs  
-- `docs` – Documentation updates  
-- `auth` – Authentication and access control  
-- `tests` – Testing framework updates 
-
----
-
-#### **3️⃣ Examples of Commit Messages**
-
-### ✅ Good commits:
-
-feat(viz): add interactive zoom for instance space plots
-
-### 🏁 Sprint 1 Changelog (Planning, Setup & Documentation)
+## 📜 Sprint 1 Changelog
 
 - ✅ **Defined the client (OPTIMA)**, documented project motivations, clarified realistic scope, and structured background in an error-free format.  
 - ✅ **Gathered both functional and non-functional requirements**, drafted clear user stories grouped by epics, and aligned them with the project scope.  
@@ -69,7 +71,8 @@ feat(viz): add interactive zoom for instance space plots
 - ✅ **Organised the team workspace** using GitHub Project boards and Slack, ensuring all tools are actively maintained for collaboration.  
 - ✅ **Validated user stories and prototype with industry partner**, recorded a 3–5 min walkthrough, incorporated feedback, and documented key takeaways.  
 
+---
 
+## ✅ Notes
 
-
-
+> This project is part of the **COMP90082 Software Project** at The University of Melbourne, Sprint 1 (2025 SM1).
