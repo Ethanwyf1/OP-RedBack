@@ -1,6 +1,6 @@
 \# OP-RedBack
 
-Welcome to the official repository for the **OPTIMA Python-Native Dashboard Project**. This project aims to replace the existing MATLAB-based system used by OPTIMA researchers with an interactive, modular, and user-friendly Python-based dashboard.
+Welcome to the official repository for the **OP-RedBack**. This project aims to replace the existing MATLAB-based system used by OPTIMA researchers with an interactive, modular, and user-friendly Python-based dashboard.
 
 ---
 
