@@ -6,11 +6,12 @@
 The MATILDA experimentation platform has traditionally relied on MATLAB-based software for result generation and visualization. However, with the recent development of the `instancespace` Python package, our project aims to transition towards a Python-native dashboard that provides an interactive and streamlined experience for visualizing the various stages of model processing.
 
 
-## Key Features
-- **End-to-End Visualization**: Displays each stage of the modeling process, including data pre-processing, feature extraction, model execution, and result interpretation.
-- **Integration with `instancespace`**: Utilizes the newly developed Python package to generate and analyze results.
-- **Interactive UI**: Enables real-time exploration of instance space distributions and performance trends.
-- **Modular Design**: Allows for easy extension and adaptation to different experimentation needs.
+## Objective
+
+To develop a modular and user-friendly Python dashboard that supports the entire MATILDA analysis pipeline, enhancing researchers' ability to visualize, interpret, and interact with data at each stage of the workflow.
+
+### Client Definition
+The client's primary users include researchers and data scientists who need more accessible tools for algorithm selection and analysis.
 
 ## Team Members:
 - [Zihang Xu]
@@ -20,17 +21,16 @@ The MATILDA experimentation platform has traditionally relied on MATLAB-based so
 - [ArulananthamAnujan Anandakumar]
 
 
-## Project Goal
-_The primary goal of this project is to develop a user-friendly Python dashboard that integrates with `instancespace` to visualize and analyze the entire workflow—from pre-processing to final results. This will provide researchers with better insight into intermediate steps and enable more efficient debugging and decision-making._
 
 ## Technologies Used
 - GitHub
 - Python
+- Streamlit
 - Streamlit Cloud
 - SQL
 - Docker
 
 ## Timeline
-- **Phase 1:** Research & Planning (dd/mm/yyyy - dd/mm/yyyy)
-- **Phase 2:** Development (dd/mm/yyyy - dd/mm/yyyy)
-- **Phase 3:** Testing & Deployment (dd/mm/yyyy - dd/mm/yyyy)
+- **Phase 1:** Research & Planning (Week1 - Week5)
+- **Phase 2:** Development (Week5 - Week8)
+- **Phase 3:** Testing & Deployment (Week8 - Week12)
