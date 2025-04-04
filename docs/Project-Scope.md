@@ -3,8 +3,6 @@
 ### Overview
 The MATILDA Python-Native Dashboard project encompasses the development of a complete web interface for the Instance Space Analysis workflow, replacing the existing MATLAB-based solution. This document defines clear boundaries for what this project will and will not address.
 
-### Client Definition
-The client's primary users include researchers and data scientists who need more accessible tools for algorithm selection and analysis.
 
 ### Project Motivations
 The current MATLAB-based solution presents several challenges for users, including:
