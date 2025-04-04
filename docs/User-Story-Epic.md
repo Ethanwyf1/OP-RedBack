@@ -1,4 +1,4 @@
-# 🚀 Project User Story
+#  Project User Story
 
 ---
 
@@ -23,11 +23,11 @@
 
 ---
 
-## 📖 User Stories by Epic
+##  User Stories by Epic
 
 # User Stories with Acceptance Criteria
 
-## 🔄 Process Visualization
+##  Process Visualization
 
 | Epic | As a | I Want To | So That | Size Estimation | MoSCoW Priority | Justification | Acceptance Criteria |
 |------|------|-----------|---------|-----------------|-----------------|---------------|---------------------|
