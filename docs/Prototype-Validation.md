@@ -3,11 +3,11 @@
 At Link: https://drive.google.com/file/d/1FeAbeLGcnJ3PejyYGmex046gNYno_tfa/view?usp=sharing
 
 ## Feedback From Industry Partner
-### ✅ General Feedback
+###  General Feedback
 - The 7-stage layout of the Streamlit interface was clear and well-received.
 - Dr. Mario emphasized that each stage should support user interactivity, iterative runs, and clear visual feedback.
 
-### 📌 Feedback for each Stage
+###  Feedback for each Stage
 #### 1. Preprocessing Stage
 Positive Feedback: Dataset summary was appreciated.
 
