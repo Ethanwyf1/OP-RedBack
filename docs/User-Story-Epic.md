@@ -138,13 +138,13 @@
 | AA-ADV-1   | All core functionalities completed |
 
 
-## 🔍 **Technology Stack**
+##  **Technology Stack**
 
 - **Framework:** Streamlit
 
 ---
 
-## 📆 **Next Steps & Actions**
+##  **Next Steps & Actions**
 
 - Finalize and confirm UI and technology stack (Weeks 5-6)
 - Prepare environment and tutorials (Week 7)
