@@ -72,8 +72,4 @@ All wiki pages have been exported to `docs/` as Markdown files.
 - ✅ **Organised the team workspace** using GitHub Project boards and Slack, ensuring all tools are actively maintained for collaboration.  
 - ✅ **Validated user stories and prototype with industry partner**, recorded a 3–5 min walkthrough, incorporated feedback, and documented key takeaways.  
 
----
 
-## ✅ Notes
-
-> This project is part of the **COMP90082 Software Project** at The University of Melbourne, Sprint 1 (2025 SM1).
