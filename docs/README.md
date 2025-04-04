@@ -18,16 +18,12 @@
 
 ---
 
-## User Personas
-
-- [Personas](./Personas.md)
-
----
 
 ## Requirement Analysis & User Story Mapping
 
 - [Task Board](./Task-Board.md)
 - [Motivational Model](./Motivational-Model.md)
+- [Personas](./Personas.md)
 - [User Story Map](./User-Story-Map.md)
 - [User Stories by Epic](./User-Story-Epic.md)
 - [User Story Dependency Map](./User-Story-Dependency-Map.md)
