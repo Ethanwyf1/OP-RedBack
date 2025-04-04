@@ -1,4 +1,4 @@
-#  Project User Story
+# Project User Story
 
 ---
 
@@ -16,10 +16,6 @@
   - [Documentation](#-documentation)
   - [Advanced Analysis](#-advanced-analysis)
   - [Interactivity](#-interactivity)
-- [User Story Dependency Mapping](#-user-story-dependency-mapping)
-- [Sprint 2 Plan (Weeks 5-8)](#-sprint-2-plan-weeks-5-8)
-- [Technology Stack](#-technology-stack)
-- [Next Steps & Actions](#-next-steps--actions)
 
 ---
 
@@ -109,43 +105,4 @@
 | INT-1 | Alex Rivera | Toggle between algorithm visualizations | I can focus on specific algorithms without visual clutter | Small | Should Have | Improves usability when analyzing many algorithms | 1. The interface must include clear toggle controls for each algorithm that update visualizations within 1 second.<br>2. Current toggle state must always be visible.<br>3. Users must be able to save favorite toggle configurations.<br>4. Keyboard shortcuts must be available for quick toggling. |
 | INT-2 | Sara Mansour | Hover over points in instance space for details | I can identify specific instances and characteristics | Small | Must Have | Essential for interactive exploration | 1. Hover tooltips must appear within 200ms and display instance ID and key metrics.<br>2. Tooltips must be positioned to avoid obscuring relevant data.<br>3. Users must be able to pin tooltips to keep them visible while exploring nearby points.<br>4. Information density in tooltips must be configurable. |
 
------
-## 🔗 **User Story Dependency Mapping**
-
-| User Story | Depends On |
-|------------|------------|
-| PV-1       | None       |
-| PV-2       | PV-1       |
-| PV-3       | PV-2       |
-| PV-4       | PV-3       |
-| AA-1       | PV-4       |
-| AA-2       | AA-1       |
-| FA-1       | AA-1       |
-| FA-2       | FA-1       |
-| FA-3       | FA-1       |
-| IA-1       | PV-4       |
-| UB-1       | AA-1, FA-1 |
-| INT-1      | AA-1       |
-| INT-2      | PV-4       |
-| DE-1       | None       |
-| DE-2       | PV-4, AA-1, FA-1 |
-| DT-1       | DE-1       |
-| DT-2       | DE-1       |
-| SEC-1      | None       |
-| SEC-2      | SEC-1      |
-| PERF-1     | PV-4, AA-1, FA-1 |
-| EF-1       | IA-1, UB-1 |
-| AA-ADV-1   | All core functionalities completed |
-
-
-##  **Technology Stack**
-
-- **Framework:** Streamlit
-
----
-
-##  **Next Steps & Actions**
-
-- Finalize and confirm UI and technology stack (Weeks 5-6)
-- Prepare environment and tutorials (Week 7)
-- Begin development (Week 8)
+----
