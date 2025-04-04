@@ -2,8 +2,7 @@
 
 - [Project Overview](./Project-Overview.md)
 - [Project Scope](./Project-Scope.md)
-- [Motivational Model](./Motivational-Model.md)
-
+  
 ---
 
 ## Sprint Ceremony
@@ -25,9 +24,10 @@
 
 ---
 
-## Requirement Analysis
+## Requirement Analysis & User Story Mapping
 
 - [Task Board](./Task-Board.md)
+- [Motivational Model](./Motivational-Model.md)
 - [User Story Map](./User-Story-Map.md)
 - [User Stories by Epic](./User-Story-Epic.md)
 - [User Story Dependency Map](./User-Story-Dependency-Map.md)
