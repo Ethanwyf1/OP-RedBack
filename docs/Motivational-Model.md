@@ -44,5 +44,5 @@ _How should stakeholders feel when interacting with the system?_
 
 ## **Motivational Model**  
 _Based on the above lists, consider creating a simple Motivational Model diagram (e.g., using Miro, Draw.io) to represent the relationships between these elements._  
-![](https://github.com/FEIT-COMP90082-2025-SM1/OP-RedBack/blob/main/Motivational_Model_diagram.jpeg)
+![](https://github.com/FEIT-COMP90082-2025-SM1/OP-RedBack/blob/main/docs/Motivational_Model_diagram.jpeg)
 
