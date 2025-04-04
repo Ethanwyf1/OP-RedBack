@@ -1,5 +1,10 @@
 # OP-RedBack
 
+## 📁 Project Documentation (Sprint 1)
+
+All wiki pages have been copied to the [`docs/`](./docs/) folder as Markdown files.
+
+To help navigate them, see the [Documentation Index](./docs/README.md).
 
 ### Branching Strategy: GitFlow
 
