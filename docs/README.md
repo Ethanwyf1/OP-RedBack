@@ -28,7 +28,6 @@
 - [User Stories by Epic](./User-Story-Epic.md)
 - [User Story Dependency Map](./User-Story-Dependency-Map.md)
 - [Technology Stack](./Technical-Stack.md)
-- [Next Steps & Actions](./Next-Steps-Actions.md)
 
 ---
 
