@@ -39,15 +39,4 @@
 ## Prototype Validation
 
 
----
 
-## Meeting Notes
-
-### Client Meetings
-- [Initial Meeting](./Client-Meeting-Initial.md)
-- [Second Meeting](./Client-Meeting-Second.md)
-
-### Team Meetings
-- [Initial Meeting](./Team-Meeting-Initial.md)
-- [Second Meeting](./Team-Meeting-Second.md)
-- [Third Meeting](./Team-Meeting-Third.md)
