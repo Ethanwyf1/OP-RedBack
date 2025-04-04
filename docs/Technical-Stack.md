@@ -1,8 +1,8 @@
-## 🧰 Technology Stack Selection
+##  Technology Stack Selection
 
 ---
 
-### ✅ Primary Choice: Streamlit
+###  Primary Choice: Streamlit
 
 #### ✅ Advantages
 
@@ -37,7 +37,7 @@
 
 ---
 
-### 🔁 Alternative Option: Dash (by Plotly)
+###  Alternative Option: Dash (by Plotly)
 
 #### ✅ Advantages
 
@@ -56,7 +56,7 @@
 
 ---
 
-### 🧱 Advanced Option: React (Frontend) + FastAPI (Backend)
+###  Advanced Option: React (Frontend) + FastAPI (Backend)
 
 #### ✅ Advantages
 
