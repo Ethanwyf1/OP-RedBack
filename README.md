@@ -22,7 +22,7 @@ The goal of this project is to create a dashboard that visualizes and supports t
 └── README.md            # Overview, repo layout, guidelines, and changelog
 ```
 
-- `docs/` contains project documentation such as user stories, meeting notes, requirements, and the motivational model.
+- `docs/` contains project documentation such as user stories, requirements, and the motivational model.
 - `src/` will contain Python source code, visualizations, and Streamlit app components in Sprint 2.
 - `README.md` is updated across sprints and contains this project summary, structure, workflow, and changelog.
 
@@ -65,7 +65,8 @@ All wiki pages have been exported to `docs/` as Markdown files.
 ## 📜 Sprint 1 Changelog
 
 - ✅ **Defined the client (OPTIMA)**, documented project motivations, clarified realistic scope, and structured background in an error-free format.  
-- ✅ **Gathered both functional and non-functional requirements**, drafted clear user stories grouped by epics, and aligned them with the project scope.  
+- ✅ **Gathered both functional and non-functional requirements**, drafted clear user stories grouped by epics, and aligned them with the project scope.
+- ✅ **Outlined a clear Motivational Model**, including stakeholder needs, functional/quality goals, and emotional goals to guide dashboard design.  
 - ✅ **Created a complete user story map**, outlined key workflows and dependencies, and documented planning for Sprint 2 in an accessible format.  
 - ✅ **Set up the GitHub repository** following the required structure (`docs/`, `src/`, `README.md`) and established GitFlow with naming conventions and commit message rules.  
 - ✅ **Organised the team workspace** using GitHub Project boards and Slack, ensuring all tools are actively maintained for collaboration.  
