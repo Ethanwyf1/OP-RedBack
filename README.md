@@ -38,7 +38,7 @@ We follow a **GitFlow**-based branching strategy:
 - `release/<sprint>` – for packaging deliverables
 - `hotfix/<issue>` – for urgent fixes
 
-✅ Commit messages follow this format:  
+ Commit messages follow this format:  
 `<type>(<scope>): <short description>`
 
 | Type      | Description                            |
