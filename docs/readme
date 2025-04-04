@@ -1,3 +1,4 @@
+## 📚 Project Documentation
 
 - [Project Overview](./Project-Overview.md)  
 - [Project Scope](./Project-Scope.md)  
@@ -5,20 +6,26 @@
 
 ---
 
+## 🌀 Sprint Ceremony
+
 - [Sprint1](./Sprint1.md)  
 - [Sprint2](./Sprint2.md)
 
 ---
 
+## 👥 Roles & Responsibilities
+
 - [Team Roles](./Team-Roles.md)
 
 ---
 
+## 👤 User Personas
 
 - [Personas](./Personas.md)
 
 ---
 
+## 📊 Requirement Analysis
 
 - [Task Board](./Task-Board.md)  
 - [User Story Map](./User-Story-Map.md)  
@@ -29,13 +36,19 @@
 
 ---
 
-> _Add prototype validation details here if available._
+## 🧪 Prototype Validation
+
+_Add prototype validation details here if available._
 
 ---
 
+## 📝 Meeting Notes
+
+### 📌 Client Meetings  
 - [Initial Meeting](./Client-Meeting-Initial.md)  
 - [Second Meeting](./Client-Meeting-Second.md)  
 
+### 📌 Team Meetings  
 - [Initial Meeting](./Team-Meeting-Initial.md)  
 - [Second Meeting](./Team-Meeting-Second.md)  
 - [Third Meeting](./Team-Meeting-Third.md)
