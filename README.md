@@ -6,7 +6,7 @@ Welcome to the official repository for the **OP-RedBack**. This project aims to 
 
 ## 📌 Project Overview
 
-The goal of this project is to create a dashboard that visualizes and supports the Instance Space Analysis (ISA) workflow using Python technologies like Streamlit. It enables researchers to:
+The goal of this project is to create a dashboard that visualizes and supports the Instance Space Analysis package workflow using Python technologies like Streamlit. It enables researchers to:
 
 - Visualize and analyze algorithm performance across different stages
 - Interact with projection data and adjust parameters iteratively
