@@ -14,7 +14,7 @@ The goal of this project is to create a dashboard that visualizes and supports t
 
 ---
 
-## 🗂 Repository Structure
+## Repository Structure
 
 ```bash
 ├── docs/                # Documentation files (copied from the Wiki)
@@ -28,7 +28,7 @@ The goal of this project is to create a dashboard that visualizes and supports t
 
 ---
 
-## 🚦 GitHub Workflow (Sprint 1)
+## GitHub Workflow (Sprint 1)
 
 We follow a **GitFlow**-based branching strategy:
 
@@ -57,7 +57,7 @@ We follow a **GitFlow**-based branching strategy:
 
 All wiki pages have been exported to `docs/` as Markdown files.
 
-📄 View the full documentation index here:  
+View the full documentation index here:  
 [Documentation Index](./docs/README.md)
 
 ---
