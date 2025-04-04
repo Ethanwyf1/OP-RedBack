@@ -1,4 +1,4 @@
-### 1.Sprint Planning, 👥 Participants: All team members present
+### 1. Sprint Planning & Setup 👥 Participants: All team members present
 
 
 #### Initial Plan
