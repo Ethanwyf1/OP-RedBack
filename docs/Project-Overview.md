@@ -31,6 +31,6 @@ The client's primary users include researchers and data scientists who need more
 - Docker
 
 ## Timeline
-- **Phase 1:** Research & Planning (Week1 - Week5)
+- **Phase 1:** Planning & Setup (Week1 - Week5)
 - **Phase 2:** Development (Week5 - Week8)
 - **Phase 3:** Testing & Deployment (Week8 - Week12)
