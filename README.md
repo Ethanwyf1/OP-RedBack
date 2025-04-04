@@ -4,7 +4,7 @@ Welcome to the official repository for the **OP-RedBack**. This project aims to 
 
 ---
 
-## 📌 Project Overview
+##  Project Overview
 
 The goal of this project is to create a dashboard that visualizes and supports the Instance Space Analysis package workflow using Python technologies like Streamlit. It enables researchers to:
 
@@ -14,7 +14,7 @@ The goal of this project is to create a dashboard that visualizes and supports t
 
 ---
 
-## 🗂️ Repository Structure
+## 🗂 Repository Structure
 
 ```bash
 ├── docs/                # Documentation files (copied from the Wiki)
@@ -53,7 +53,7 @@ We follow a **GitFlow**-based branching strategy:
 
 ---
 
-## 🧭 Sprint 1 Deliverables
+##  Sprint 1 Deliverables
 
 All wiki pages have been exported to `docs/` as Markdown files.
 
@@ -62,7 +62,7 @@ All wiki pages have been exported to `docs/` as Markdown files.
 
 ---
 
-## 📜 Sprint 1 Changelog
+## Sprint 1 Changelog
 
 - ✅ **Defined the client (OPTIMA)**, documented project motivations, clarified realistic scope, and structured background in an error-free format.  
 - ✅ **Gathered both functional and non-functional requirements**, drafted clear user stories grouped by epics, and aligned them with the project scope.
