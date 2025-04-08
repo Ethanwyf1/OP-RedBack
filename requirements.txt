@@ -1,0 +1,13 @@
+streamlit
+pandas
+numpy
+matplotlib
+pygad
+shapely
+alphashape
+scikit-learn
+scikit-optimize
+click
+loguru
+# Install instancespace package
+instancespace @ git+https://github.com/andremun/pyInstanceSpace.git
