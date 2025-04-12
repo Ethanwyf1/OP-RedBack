@@ -14,6 +14,50 @@ The goal of this project is to create a dashboard that visualizes and supports t
 
 ---
 
+## 📦 Prerequisites
+
+Ensure the following tools are installed:
+
+- [Python 3.8+](https://www.python.org/downloads/)
+- `pip` (comes with Python)
+- Virtual environment tool (`venv` or `conda` recommended)
+
+---
+
+## 🚀 How to Run
+
+#### 1. Clone the repository
+
+```bash
+git clone https://github.com/FEIT-COMP90082-2025-SM1/OP-RedBack.git
+cd OP-RedBack
+```
+
+#### 2. Set up and activate the virtual environment
+
+```bash
+python -m venv venv
+venv\Scripts\activate  # Windows
+# or
+source venv/bin/activate  # macOS/Linux
+```
+
+#### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+#### 4. Run the Streamlit app
+
+```bash
+streamlit run src/app.py
+```
+
+> Then open the URL in your browser (usually at `http://localhost:8501`).
+
+---
+
 ## Repository Structure
 
 ```bash
