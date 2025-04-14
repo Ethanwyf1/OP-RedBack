@@ -7,6 +7,7 @@ import pandas as pd
 from instancespace.data.options import SelvarsOptions
 from utils.run_preprocessing import run_preprocessing
 from utils.download_utils import create_stage_output_zip
+from utils.cache_utils import save_to_cache, load_from_cache
 
 
 def show():
@@ -58,6 +59,12 @@ def show():
 
         st.session_state["output"] = run_preprocessing("data/metadata.csv", feats=selected_feats, algos=selected_algos)
         st.session_state["ran_preprocessing"] = True
+
+        # Add cache saving here
+        save_to_cache(st.session_state["output"], "preprocessing_output.pkl")
+
+        # Display reminder banner
+        st.toast("✅ Preprocessing run successfully!", icon="🚀")
 
     if st.session_state.get("ran_preprocessing", False):
 
@@ -147,21 +154,27 @@ def show():
         st.success("✅ Preprocessing completed and visualized.")
 
         st.subheader("📥 Download Processed Data")
-        
-        output = st.session_state["output"]
-        features_df = pd.DataFrame(output.x, columns=output.feat_labels)
-        performance_df = pd.DataFrame(output.y_raw, columns=output.algo_labels)
 
-        zip_data = create_stage_output_zip(
-            x=features_df,
-            y=performance_df,
-            instance_labels=output.inst_labels,
-            source_labels=output.s
-        )
+        try:
+            cached_output = load_from_cache("preprocessing_output.pkl")
 
-        st.download_button(
-            label="⬇️ Download Preprocessing Stage Output (ZIP)",
-            data=zip_data,
-            file_name="preprocessing_output.zip",
-            mime="application/zip"
-        )
+            features_df = pd.DataFrame(cached_output.x, columns=cached_output.feat_labels)
+            performance_df = pd.DataFrame(cached_output.y_raw, columns=cached_output.algo_labels)
+
+            zip_data = create_stage_output_zip(
+                x=features_df,
+                y=performance_df,
+                instance_labels=cached_output.inst_labels,
+                source_labels=cached_output.s,
+                metadata_description="This ZIP contains the cached output from the Preprocessing stage."
+            )
+
+            st.download_button(
+                label="⬇️ Download Cached Preprocessing Output (ZIP)",
+                data=zip_data,
+                file_name="preprocessing_output.zip",
+                mime="application/zip"
+            )
+
+        except Exception as e:
+            st.error(f"❌ Failed to load cache: {e}")
