@@ -11,8 +11,15 @@ from utils.run_preprocessing import run_preprocessing
 def show():
     st.header("🔍 Preprocessing Stage")
 
+    uploaded_file = st.session_state.get("uploaded_file")
+    if uploaded_file is None:
+        st.error("🚫 Please upload the metadata CSV file on the Homepage page before using the Preprocessing function.")
+        return
+    else:
+        metadata_input = uploaded_file
+
     # Step 1: Load initial data (for selection options)
-    default_output = run_preprocessing("data/metadata.csv")
+    default_output = run_preprocessing(metadata_input)
 
     st.markdown("This stage performs data cleaning and filtering. Use the options below to select features and algorithms.")
 

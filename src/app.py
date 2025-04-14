@@ -5,11 +5,15 @@ st.title("🧠 Instance Space Visualizer")
 
 st.sidebar.header("Select Stage")
 stage = st.sidebar.radio("Stage", [
-    "Preprocessing", "PRELIM", "SIFTED", "PILOT", "CLOISTER", "PYTHIA", "TRACE"
+    "Home","Preprocessing", "PRELIM", "SIFTED", "PILOT", "CLOISTER", "PYTHIA", "TRACE"
 ])
 
 # Import the display module for each stage
-if stage == "Preprocessing":
+if stage == "Home":
+    from stages import home
+    home.show()
+
+elif stage == "Preprocessing":
     from stages import preprocessing
     preprocessing.show()
 
