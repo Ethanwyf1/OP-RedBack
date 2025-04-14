@@ -6,6 +6,7 @@ import pandas as pd
 
 from instancespace.data.options import SelvarsOptions
 from utils.run_preprocessing import run_preprocessing
+from utils.download_utils import create_stage_output_zip
 
 
 def show():
@@ -144,3 +145,23 @@ def show():
 
         st.caption("ℹ️ Use log scale to better visualize features with extreme values. Outliers may distort box shape.")
         st.success("✅ Preprocessing completed and visualized.")
+
+        st.subheader("📥 Download Processed Data")
+        
+        output = st.session_state["output"]
+        features_df = pd.DataFrame(output.x, columns=output.feat_labels)
+        performance_df = pd.DataFrame(output.y_raw, columns=output.algo_labels)
+
+        zip_data = create_stage_output_zip(
+            x=features_df,
+            y=performance_df,
+            instance_labels=output.inst_labels,
+            source_labels=output.s
+        )
+
+        st.download_button(
+            label="⬇️ Download Preprocessing Stage Output (ZIP)",
+            data=zip_data,
+            file_name="preprocessing_output.zip",
+            mime="application/zip"
+        )
