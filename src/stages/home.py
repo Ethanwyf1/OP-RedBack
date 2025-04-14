@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import os
 
 def show():
     st.header("🏠 Welcome to the Instance Space Visualizer")
@@ -29,14 +30,26 @@ def show():
     ##Upload file
     st.markdown("### 📂 Upload Your Metadata File (.csv)")
 
-    uploaded_file = st.file_uploader("Upload a CSV file containing instance features and performance data", type=["csv"])
+    uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+    if uploaded_file:
+        with open("cache/uploaded_metadata.csv", "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        st.session_state["uploaded_file_path"] = "cache/uploaded_metadata.csv"
 
-    if uploaded_file is not None:
-        st.session_state["uploaded_file"] = uploaded_file 
-        try:
-            df = pd.read_csv(uploaded_file)
-            st.success("✅ File uploaded successfully!")
-            st.dataframe(df.head(), use_container_width=True)
-            st.caption("📌 This is a preview of the uploaded dataset. You can proceed to the Preprocessing stage.")
-        except Exception as e:
-            st.error(f"❌ Failed to read file: {e}")
+        df = pd.read_csv("cache/uploaded_metadata.csv")
+        st.success("✅ File uploaded and cached!")
+        st.dataframe(df.head())
+
+    elif os.path.exists("cache/uploaded_metadata.csv"):
+        st.info("📌 Using previously uploaded metadata file.")
+        df = pd.read_csv("cache/uploaded_metadata.csv")
+        st.session_state["uploaded_file_path"] = "cache/uploaded_metadata.csv"
+        st.dataframe(df.head())
+    else:
+        st.warning("⚠️ Please upload your metadata file to continue.")
+
+    if os.path.exists("cache/uploaded_metadata.csv"):
+        if st.button("🗑️ Delete Uploaded Metadata"):
+            os.remove("cache/uploaded_metadata.csv")
+            st.session_state.pop("uploaded_file", None)
+            st.warning("Uploaded metadata has been deleted.")

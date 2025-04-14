@@ -3,22 +3,24 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
+import os
 
 from instancespace.data.options import SelvarsOptions
 from utils.run_preprocessing import run_preprocessing
 from utils.download_utils import create_stage_output_zip
-from utils.cache_utils import save_to_cache, load_from_cache, delete_cache
+from utils.cache_utils import save_to_cache, load_from_cache, delete_cache, cache_exists
 
 
 def show():
     st.header("🔍 Preprocessing Stage")
 
-    uploaded_file = st.session_state.get("uploaded_file")
-    if uploaded_file is None:
-        st.error("🚫 Please upload the metadata CSV file on the Homepage page before using the Preprocessing function.")
+    uploaded_path = st.session_state.get("uploaded_file_path", "cache/uploaded_metadata.csv")
+
+    if not os.path.exists(uploaded_path):
+        st.error("🚫 Metadata not found. Please upload it on the Homepage.")
         return
     else:
-        metadata_input = uploaded_file
+        metadata_input = uploaded_path
 
     # Step 1: Load initial data (for selection options)
     default_output = run_preprocessing(metadata_input)
@@ -156,7 +158,7 @@ def show():
         # --- Download Data Button --- 
         st.subheader("📥 Download Processed Data")
 
-        try:
+        if cache_exists("preprocessing_output.pkl"):
             cached_output = load_from_cache("preprocessing_output.pkl")
 
             features_df = pd.DataFrame(cached_output.x, columns=cached_output.feat_labels)
@@ -177,8 +179,8 @@ def show():
                 mime="application/zip"
             )
 
-        except Exception as e:
-            st.error(f"❌ Failed to load cache: {e}")
+        else:
+            st.warning("⚠️ No preprocessing cache found. Please click **Run Preprocessing** first.")
     
         ## Delete cache Button
         st.subheader("🗑️ Cache Management")
