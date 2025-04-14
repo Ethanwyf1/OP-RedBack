@@ -57,3 +57,21 @@ def export_cache_as_bytes(filename: str, folder: str = "cache") -> bytes:
     filepath = os.path.join(folder, filename)
     with open(filepath, "rb") as f:
         return f.read()
+    
+def delete_cache(filename: str, folder: str = "cache") -> bool:
+    """
+    Delete a specific cache file if it exists.
+
+    Parameters:
+    - filename: The cache filename to delete (e.g., 'preprocessing_output.pkl')
+    - folder: The folder where cache files are stored (default: 'cache')
+
+    Returns:
+    - True if file was deleted, False if file did not exist
+    """
+    filepath = os.path.join(folder, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        return True
+    return False
+

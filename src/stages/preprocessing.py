@@ -7,7 +7,7 @@ import pandas as pd
 from instancespace.data.options import SelvarsOptions
 from utils.run_preprocessing import run_preprocessing
 from utils.download_utils import create_stage_output_zip
-from utils.cache_utils import save_to_cache, load_from_cache
+from utils.cache_utils import save_to_cache, load_from_cache, delete_cache
 
 
 def show():
@@ -57,7 +57,7 @@ def show():
             density_flag=False
         )
 
-        st.session_state["output"] = run_preprocessing("data/metadata.csv", feats=selected_feats, algos=selected_algos)
+        st.session_state["output"] = run_preprocessing(metadata_input, feats=selected_feats, algos=selected_algos)
         st.session_state["ran_preprocessing"] = True
 
         # Add cache saving here
@@ -153,6 +153,7 @@ def show():
         st.caption("ℹ️ Use log scale to better visualize features with extreme values. Outliers may distort box shape.")
         st.success("✅ Preprocessing completed and visualized.")
 
+        # --- Download Data Button --- 
         st.subheader("📥 Download Processed Data")
 
         try:
@@ -178,3 +179,13 @@ def show():
 
         except Exception as e:
             st.error(f"❌ Failed to load cache: {e}")
+    
+        ## Delete cache Button
+        st.subheader("🗑️ Cache Management")
+
+        if st.button("❌ Delete Preprocessing Cache"):
+            success = delete_cache("preprocessing_output.pkl")
+            if success:
+                st.success("🗑️ Preprocessing cache deleted.")
+            else:
+                st.warning("⚠️ No cache file found to delete.")
