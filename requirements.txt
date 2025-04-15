@@ -10,6 +10,9 @@ scikit-optimize
 click
 loguru
 seaborn
+pytest
+flake8
+openai
 
 # Install instancespace package
 instancespace @ git+https://github.com/andremun/pyInstanceSpace.git
