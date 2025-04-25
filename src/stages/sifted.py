@@ -13,7 +13,7 @@ from sklearn.decomposition import PCA
 import traceback
 
 def display_sifted_output(sifted_out):
-    
+
     """
     Visualization：
       1) Feature Importance
@@ -305,8 +305,20 @@ def show():
             
             sifted_output = st.session_state["sifted_output"]
             display_sifted_output(sifted_output)
-
+            st.subheader("🗑️ Cache Management")
+            if st.button("❌ Delete Sifted Cache"):
+                success = delete_cache("sifted_output.pkl")
+                if success:
+                    st.success("🗑️ Sifted cache deleted.")
+                    if "sifted_output" in st.session_state:
+                        del st.session_state["sifted_output"]
+                    if "ran_sifted" in st.session_state:
+                        del st.session_state["ran_sifted"]
+                else:
+                    st.warning("⚠️ No cache file found to delete.")
 
         except Exception as e:
             st.error(f"Error displaying Sifted results: {str(e)}")
             st.code(traceback.format_exc())
+
+    
