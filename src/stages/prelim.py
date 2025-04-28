@@ -1,800 +1,853 @@
+# Standard Library Imports
+import pickle
 import streamlit as st
-import matplotlib.pyplot as plt
-import seaborn as sns
+import traceback
+import os
+import io
+import json
+import zipfile
+import tempfile
+from typing import NamedTuple, Optional
+from numpy.typing import NDArray
+
+# Data Manipulation and Scientific Computing
 import numpy as np
 import pandas as pd
-import os
-import traceback
-import io
-import zipfile
-from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import seaborn as sns
 
+# Machine Learning and Scientific Libraries
+from scipy import optimize, stats
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Instancespace Specific Imports
+from instancespace.data.model import DataDense
 from instancespace.data.options import PrelimOptions, SelvarsOptions
-from instancespace.stages.prelim import PrelimStage, PrelimOutput
-from utils.download_utils import create_stage_output_zip
-from utils.cache_utils import save_to_cache, load_from_cache, delete_cache, cache_exists
+from instancespace.stages.stage import Stage
+from instancespace.stages.prelim import PrelimStage
+from instancespace.utils.filter import do_filter
 
+# Cache Utilities
+from utils.cache_utils import load_from_cache, cache_exists, save_to_cache
 
-class ExtendedPrelimOutput:
-    """Wrapper for PrelimOutput that allows adding custom attributes."""
-    
-    def __init__(self, prelim_output, max_perf=True, abs_perf=True, epsilon=0.1, beta_threshold=0.1, bound=True, norm=True):
-        # Copy all attributes from the PrelimOutput
-        for attr in dir(prelim_output):
-            if not attr.startswith('_'):  # Skip private attributes
-                setattr(self, attr, getattr(prelim_output, attr))
-        
-        # Add custom attributes
-        self.max_perf = max_perf
-        self.abs_perf = abs_perf
-        self.epsilon = epsilon
-        self.beta_threshold = beta_threshold
-        self.bound = bound
-        self.norm = norm
-
-
-def custom_prelim_run(x, y, x_raw, y_raw, s, inst_labels, prelim_options, selvars_options):
+# Define PrelimInput
+class PrelimInput(NamedTuple):
     """
-    A custom wrapper for the Prelim stage to handle type issues with infinity values.
-    This removes NaN rows to avoid conversion issues and performs the preprocessing.
-    
-    Returns a safely constructed PrelimOutput object.
+    Input structure for the Preliminary Stage of Instancespace Analysis.
     """
-    # Remove rows with NaN values in either x or y
-    nan_mask_x = np.isnan(x).any(axis=1)
-    nan_mask_y = np.isnan(y).any(axis=1)
-    nan_mask = nan_mask_x | nan_mask_y
-    
-    if nan_mask.any():
-        st.warning(f"Removing {np.sum(nan_mask)} rows with NaN values")
-        valid_rows = ~nan_mask
-        x = x[valid_rows]
-        y = y[valid_rows]
-        x_raw = x_raw[valid_rows]
-        y_raw = y_raw[valid_rows]
-        
-        if inst_labels is not None:
-            inst_labels = inst_labels[valid_rows]
-        if s is not None:
-            s = s[valid_rows]
-    
-    # Ensure data is float type to handle any calculations
-    x = x.astype(np.float64)
-    y = y.astype(np.float64)
-    x_raw = x_raw.astype(np.float64)
-    y_raw = y_raw.astype(np.float64)
-    
-    # Create binary performance evaluation
-    y_bin = np.zeros_like(y, dtype=bool)
-    
-    # Binary classification based on performance
-    if prelim_options.max_perf:
-        # For maximization problems
-        if prelim_options.abs_perf:
-            # Absolute threshold
-            y_bin = y >= prelim_options.epsilon
-        else:
-            # Relative to best
-            y_best = np.max(y, axis=1, keepdims=True)
-            y_bin = y >= (y_best * (1 - prelim_options.epsilon))
-    else:
-        # For minimization problems
-        if prelim_options.abs_perf:
-            # Absolute threshold
-            y_bin = y <= prelim_options.epsilon
-        else:
-            # Relative to best
-            y_best = np.min(y, axis=1, keepdims=True)
-            y_bin = y <= (y_best * (1 + prelim_options.epsilon))
-    
-    # Calculate y_best as a flat array - best performance per instance
-    if prelim_options.max_perf:
-        y_best = np.max(y, axis=1)
-    else:
-        y_best = np.min(y, axis=1)
-    
-    # Calculate p - index of best algorithm per instance (1-indexed)
-    if prelim_options.max_perf:
-        p = np.argmax(y, axis=1) + 1
-    else:
-        p = np.argmin(y, axis=1) + 1
-    
-    # Calculate num_good_algos - number of good algorithms per instance
-    num_good_algos = np.sum(y_bin, axis=1)
-    
-    # Calculate beta - instances with more than threshold*nalgos good algorithms
-    beta = num_good_algos > (prelim_options.beta_threshold * y.shape[1])
-    
-    # Create placeholders for other required values
-    nfeats = x.shape[1]
-    nalgos = y.shape[1]
-    
-    # Handle outliers if requested
-    if prelim_options.bound:
-        # Calculate bounds for outlier removal
-        med_val = np.median(x, axis=0)
-        iq_range = np.percentile(x, 75, axis=0) - np.percentile(x, 25, axis=0)
-        hi_bound = med_val + 5 * iq_range
-        lo_bound = med_val - 5 * iq_range
-        
-        # Apply bounds
-        for i in range(nfeats):
-            x[:, i] = np.clip(x[:, i], lo_bound[i], hi_bound[i])
-    else:
-        # Default values if not calculating bounds
-        med_val = np.median(x, axis=0)
-        iq_range = np.percentile(x, 75, axis=0) - np.percentile(x, 25, axis=0)
-        hi_bound = med_val + 5 * iq_range
-        lo_bound = med_val - 5 * iq_range
-    
-    # Handle normalization if requested
-    if prelim_options.norm:
-        # For features (x)
-        min_x = np.min(x, axis=0)
-        x = x - min_x  # Center around 0
-        
-        # Simple z-score normalization instead of Box-Cox
-        mu_x = np.mean(x, axis=0)
-        sigma_x = np.std(x, axis=0)
-        for i in range(nfeats):
-            if sigma_x[i] > 0:  # Avoid division by zero
-                x[:, i] = (x[:, i] - mu_x[i]) / sigma_x[i]
-        
-        # For algorithms (y)
-        min_y = float(np.min(y))
-        y = y - min_y  # Make all values positive
-        
-        mu_y = np.mean(y, axis=0)
-        sigma_y = np.std(y, axis=0)
-        for i in range(nalgos):
-            if sigma_y[i] > 0:  # Avoid division by zero
-                y[:, i] = (y[:, i] - mu_y[i]) / sigma_y[i]
-        
-        # Placeholder for lambda values (normally from Box-Cox)
-        lambda_x = np.zeros(nfeats)
-        lambda_y = np.zeros(nalgos)
-    else:
-        # Default values if not normalizing
-        min_x = np.min(x, axis=0)
-        lambda_x = np.zeros(nfeats)
-        mu_x = np.mean(x, axis=0)
-        sigma_x = np.std(x, axis=0)
-        
-        min_y = float(np.min(y))
-        lambda_y = np.zeros(nalgos)
-        mu_y = np.mean(y, axis=0)
-        sigma_y = np.std(y, axis=0)
-    
-    # Create a PrelimOutput object with our calculated values
-    prelim_output = PrelimOutput(
-        med_val=med_val,
-        iq_range=iq_range,
-        hi_bound=hi_bound,
-        lo_bound=lo_bound,
-        min_x=min_x,
-        lambda_x=lambda_x,
-        mu_x=mu_x,
-        sigma_x=sigma_x,
-        min_y=min_y,
-        lambda_y=lambda_y,
-        sigma_y=sigma_y,
-        mu_y=mu_y,
-        x=x,
-        y=y,
-        x_raw=x_raw,
-        y_raw=y_raw,
-        y_bin=y_bin,
-        y_best=y_best,
-        p=p.astype(np.int_),
-        num_good_algos=num_good_algos,
-        beta=beta,
-        instlabels=inst_labels,
-        data_dense=None,
-        s=s
-    )
-    
-    # Wrap the PrelimOutput in our ExtendedPrelimOutput to add custom attributes
-    extended_output = ExtendedPrelimOutput(
-        prelim_output,
-        max_perf=prelim_options.max_perf,
-        abs_perf=prelim_options.abs_perf,
-        epsilon=prelim_options.epsilon,
-        beta_threshold=prelim_options.beta_threshold,
-        bound=prelim_options.bound,
-        norm=prelim_options.norm
-    )
-    
-    return extended_output
+    x: NDArray[np.double]
+    y: NDArray[np.double]
+    x_raw: NDArray[np.double]
+    y_raw: NDArray[np.double]
+    s: Optional[pd.Series]
+    inst_labels: pd.Series
+    prelim_options: PrelimOptions
+    selvars_options: SelvarsOptions
 
-
-def run_prelim(preprocessing_output, prelim_options, selvars_options):
+def manually_save_output(output, filename="prelim_output.pkl"):
     """
-    Run the Prelim stage of ISA using the output from Preprocessing stage.
-    This function uses a custom implementation to avoid infinity conversion issues.
+    Custom function to save the preliminary output directly to disk,
+    avoiding issues with os.path.join and complex objects.
     """
     try:
-        # Use our custom implementation to avoid the infinity conversion issue
-        return custom_prelim_run(
-            x=preprocessing_output.x.copy(),
-            y=preprocessing_output.y.copy(),
-            x_raw=preprocessing_output.x_raw.copy(),
-            y_raw=preprocessing_output.y_raw.copy(),
-            s=preprocessing_output.s,
-            inst_labels=preprocessing_output.inst_labels,
-            prelim_options=prelim_options,
-            selvars_options=selvars_options
-        )
+        # Define the cache directory
+        cache_dir = "cache"
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        # Create the full path
+        filepath = os.path.join(cache_dir, filename)
+        
+        # Save the object using pickle
+        with open(filepath, 'wb') as f:
+            pickle.dump(output, f)
+        
+        return True
     except Exception as e:
-        st.error(f"Error during Prelim execution: {str(e)}")
-        st.code(traceback.format_exc())
+        st.error(f"Error saving output: {e}")
+        return False
+
+# Preprocessing and Type Handling
+def preprocess_performance_matrix(y):
+    """
+    Preprocess the performance matrix to ensure type compatibility.
+    """
+    # Convert to float64
+    y_processed = y.astype(np.float64)
+    
+    # Replace any NaN or infinity values
+    y_processed = np.nan_to_num(
+        y_processed, 
+        nan=np.finfo(np.float64).min,  # Replace NaNs with minimum float value
+        posinf=np.finfo(np.float64).max,  # Replace +inf with maximum float value
+        neginf=np.finfo(np.float64).min   # Replace -inf with minimum float value
+    )
+    
+    return y_processed
+
+# Cache Loading
+def load_preprocessing_output():
+    """
+    Load preprocessing output from cache with comprehensive error handling.
+    """
+    try:
+        # Check if preprocessing cache exists
+        if not cache_exists("preprocessing_output.pkl"):
+            st.error("Preprocessing output cache not found.")
+            st.error("Please run the Preprocessing stage first.")
+            return None
+        
+        # Attempt to load preprocessing output from cache
+        preprocessing_output = load_from_cache("preprocessing_output.pkl")
+        
+        # Validate the loaded output
+        if preprocessing_output is None:
+            st.error("Loaded preprocessing output is None")
+            return None
+        
+        # Verify essential attributes
+        essential_attrs = ['x', 'y', 'x_raw', 'y_raw', 'inst_labels']
+        missing_attrs = [attr for attr in essential_attrs if not hasattr(preprocessing_output, attr)]
+        
+        if missing_attrs:
+            st.error("Missing essential preprocessing output attributes")
+            return None
+        
+        # Log successful loading
+        st.success("Preprocessing output loaded successfully")
+        
+        return preprocessing_output
+    
+    except Exception as e:
+        st.error(f"Error loading preprocessing output: {str(e)}")
         return None
 
-
-def viz_1_algorithm_performance_comparison(output):
+# Preliminary Stage Processing
+def run_prelim(preprocessing_output, prelim_options, selvars_options):
     """
-    Creates a violin plot comparing algorithm performance distributions.
-    This visualization shows both raw performance and classification results.
+    Run the Prelim stage with enhanced type handling and selvars_options fix.
     """
-    # Prepare the data
-    algo_labels = [f"Algorithm {i+1}" for i in range(output.y.shape[1])]
-    
-    # Reshape data for plotting
-    perf_data = []
-    for i in range(output.y_raw.shape[1]):
-        algo_perf = output.y_raw[:, i]
-        algo_bin = output.y_bin[:, i]
+    try:
+        # Preprocess matrices to ensure type compatibility
+        x = preprocessing_output.x.astype(np.float64)
+        x_raw = preprocessing_output.x_raw.astype(np.float64)
         
-        for j, (perf, is_good) in enumerate(zip(algo_perf, algo_bin)):
-            perf_data.append({
-                'Algorithm': algo_labels[i],
-                'Performance': perf,
-                'Classification': 'Good' if is_good else 'Poor',
-                'Instance': j
-            })
+        # Special handling for performance matrices
+        y = preprocess_performance_matrix(preprocessing_output.y)
+        y_raw = preprocess_performance_matrix(preprocessing_output.y_raw)
+        
+        # Modify selvars_options to provide a default file_idx if None
+        if selvars_options.file_idx is None:
+            # Create a temporary file with a placeholder path
+            temp_file = tempfile.mktemp(suffix='.txt')
+            
+            # Modify selvars_options with the temporary file path
+            selvars_options = SelvarsOptions(
+                feats=selvars_options.feats,
+                algos=selvars_options.algos,
+                small_scale_flag=selvars_options.small_scale_flag,
+                small_scale=selvars_options.small_scale,
+                file_idx_flag=False,
+                file_idx=temp_file,
+                selvars_type=selvars_options.selvars_type,
+                min_distance=selvars_options.min_distance,
+                density_flag=selvars_options.density_flag
+            )
+        
+        # Perform preliminary processing
+        st.info("Running preliminary processing...")
+        prelim_output = PrelimStage._run(
+            PrelimInput(
+                x=x.copy(),
+                y=y.copy(),
+                x_raw=x_raw.copy(),
+                y_raw=y_raw.copy(),
+                s=preprocessing_output.s,
+                inst_labels=preprocessing_output.inst_labels,
+                prelim_options=prelim_options,
+                selvars_options=selvars_options
+            )
+        )
+        st.success("Preliminary processing completed")
+        
+        return prelim_output
     
-    # Create a dataframe for plotting
-    perf_df = pd.DataFrame(perf_data)
+    except Exception as e:
+        st.error(f"Error during Prelim execution: {str(e)}")
+        return None
+
+# Visualization Functions
+def visualize_binary_performance(prelim_output, selected_algorithms):
+    """
+    Visualize binary performance classification for selected algorithms
+    """
+    # Create summary statistics first
+    summary_data = []
+    for i, algo_idx in enumerate(selected_algorithms):
+        good_count = np.sum(prelim_output.y_bin[:, algo_idx])
+        total_count = prelim_output.y_bin.shape[0]
+        good_percentage = (good_count / total_count) * 100
+        
+        summary_data.append({
+            "Algorithm": f"Algorithm {algo_idx+1}",
+            "Good Performance Count": good_count,
+            "Good Performance (%)": f"{good_percentage:.2f}%",
+            "Total Instances": total_count
+        })
     
-    # Create the plot
-    fig, ax = plt.subplots(figsize=(14, 8))
+    # Display the summary
+    st.subheader("Binary Performance Summary")
+    st.table(pd.DataFrame(summary_data))
     
-    # Violin plot showing performance distribution by algorithm
-    sns.violinplot(x='Algorithm', y='Performance', hue='Classification', 
-                 data=perf_df, palette={'Good': 'green', 'Poor': 'red'}, 
-                 inner='quartile', split=True, ax=ax)
+    # Bar chart instead of heatmap
+    plt.figure(figsize=(10, 6))
     
-    # Customize the plot
-    ax.set_title("Algorithm Performance Distribution and Classification")
-    ax.set_xlabel("Algorithms")
-    ax.set_ylabel("Performance Value")
-    plt.xticks(rotation=45, ha="right")
+    # Extract percentages for bar chart
+    algorithms = [f"Algorithm {i+1}" for i in selected_algorithms]
+    percentages = [np.sum(prelim_output.y_bin[:, i]) / prelim_output.y_bin.shape[0] * 100 for i in selected_algorithms]
     
-    # Add a line for absolute threshold if applicable
-    if hasattr(output, 'abs_perf') and output.abs_perf and hasattr(output, 'epsilon'):
-        ax.axhline(y=output.epsilon, color='blue', linestyle='--', 
-                  label=f'Threshold (ε={output.epsilon:.2f})')
-        ax.legend()
+    # Create bar chart
+    bars = plt.bar(algorithms, percentages, color='skyblue')
+    
+    # Add percentage labels on top of bars
+    for bar, percentage in zip(bars, percentages):
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1, 
+                f"{percentage:.1f}%", ha='center', va='bottom')
+    
+    plt.title("Percentage of Good Performance by Algorithm")
+    plt.xlabel("Algorithms")
+    plt.ylabel("Good Performance (%)")
+    plt.ylim(0, 100)  # Set y-axis range from 0 to 100%
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    
+    st.pyplot(plt.gcf())
+    
+    # Best algorithms per instance
+    st.subheader("Best Algorithm Distribution")
+    
+    # Count best algorithm occurrences
+    algorithm_counts = np.bincount(prelim_output.p.astype(int), minlength=prelim_output.y.shape[1]+1)[1:]
+    
+    plt.figure(figsize=(10, 6))
+    algorithms = [f"Algorithm {i+1}" for i in range(len(algorithm_counts))]
+    
+    # Plot best algorithm distribution
+    bars = plt.bar(algorithms, algorithm_counts, color='lightgreen')
+    
+    # Add count labels
+    for bar, count in zip(bars, algorithm_counts):
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5, 
+                str(count), ha='center', va='bottom')
+    
+    plt.title("Number of Instances Where Each Algorithm is Best")
+    plt.xlabel("Algorithms")
+    plt.ylabel("Count")
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    
+    st.pyplot(plt.gcf())
+
+def visualize_performance_distribution(prelim_output, selected_algorithms):
+    """
+    Visualize the distribution of both raw and processed performance values
+    """
+    plt.figure(figsize=(15, 8))
+    
+    # Raw performance distribution
+    plt.subplot(121)
+    for i in selected_algorithms:
+        raw_perf = prelim_output.y_raw[:, i]
+        sns.kdeplot(raw_perf, label=f"Algorithm {i+1}")
+    
+    plt.title("Raw Performance Distribution")
+    plt.xlabel("Raw Performance Value")
+    plt.ylabel("Density")
+    plt.legend()
+    
+    # Processed performance distribution
+    plt.subplot(122)
+    for i in selected_algorithms:
+        proc_perf = prelim_output.y[:, i]
+        sns.kdeplot(proc_perf, label=f"Algorithm {i+1}")
+    
+    plt.title("Processed Performance Distribution")
+    plt.xlabel("Processed Performance Value")
+    plt.ylabel("Density")
+    plt.legend()
     
     plt.tight_layout()
-    st.pyplot(fig)
+    st.pyplot(plt.gcf())
     
-    st.caption("ℹ️ This violin plot shows the performance distribution for each algorithm. "
-              "The green side shows instances classified as 'good' performance, while "
-              "the red side shows instances classified as 'poor' performance. "
-              "The split violin shape helps visualize how performance values are distributed.")
+    # Display transform parameters per algorithm
+    st.subheader("Algorithm Normalization Parameters")
     
-    # Additional statistics
-    col1, col2 = st.columns(2)
-    with col1:
-        # Create a bar chart of percent good performance by algorithm
-        good_percent = []
-        for i in range(output.y_bin.shape[1]):
-            pct = np.mean(output.y_bin[:, i]) * 100
-            good_percent.append({
-                'Algorithm': algo_labels[i],
-                'Good Performance (%)': pct
-            })
-        
-        good_df = pd.DataFrame(good_percent)
-        
-        fig, ax = plt.subplots(figsize=(10, 6))
-        bars = ax.bar(good_df['Algorithm'], good_df['Good Performance (%)'], color='skyblue')
-        
-        # Add labels
-        for bar in bars:
-            height = bar.get_height()
-            ax.annotate(f'{height:.1f}%',
-                       xy=(bar.get_x() + bar.get_width() / 2, height),
-                       xytext=(0, 3),  # 3 points vertical offset
-                       textcoords="offset points",
-                       ha='center', va='bottom')
-            
-        ax.set_title("Percentage of Instances with Good Performance by Algorithm")
-        ax.set_xlabel("Algorithm")
-        ax.set_ylabel("Good Performance (%)")
-        plt.xticks(rotation=45, ha="right")
-        plt.tight_layout()
-        st.pyplot(fig)
+    algo_data = []
+    for i in selected_algorithms:
+        algo_data.append({
+            "Algorithm": f"Algorithm {i+1}",
+            "Box-Cox λ": f"{prelim_output.lambda_y[i]:.4f}",
+            "Mean (μ)": f"{prelim_output.mu_y[i]:.4f}",
+            "Std Dev (σ)": f"{prelim_output.sigma_y[i]:.4f}"
+        })
     
-    with col2:
-        # Show raw performance statistics
-        stats = []
-        for i in range(output.y_raw.shape[1]):
-            stats.append({
-                'Algorithm': algo_labels[i],
-                'Min': np.min(output.y_raw[:, i]),
-                'Max': np.max(output.y_raw[:, i]),
-                'Mean': np.mean(output.y_raw[:, i]),
-                'Median': np.median(output.y_raw[:, i]),
-                'Good Count': np.sum(output.y_bin[:, i])
-            })
-        
-        stats_df = pd.DataFrame(stats)
-        st.write("Algorithm Performance Statistics")
-        st.dataframe(stats_df, use_container_width=True)
+    st.table(pd.DataFrame(algo_data))
+    
+    # Show best performance distribution
+    st.subheader("Best Performance Distribution")
+    
+    plt.figure(figsize=(10, 6))
+    sns.histplot(prelim_output.y_best, kde=True, color='purple')
+    plt.title("Distribution of Best Performance Values")
+    plt.xlabel("Best Performance Value")
+    plt.ylabel("Frequency")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    
+    st.pyplot(plt.gcf())
 
-
-def viz_2_feature_algorithm_relationship(output):
+def visualize_feature_transformations(prelim_output, selected_features):
     """
-    Creates scatter plots to show relationships between features and algorithm performance.
-    This visualization helps understand how features affect algorithm classification.
+    Visualize the effect of transformations on selected features
     """
-    # Pick a reasonable number of features and algorithms
-    max_features = min(3, output.x.shape[1])
-    max_algos = min(3, output.y.shape[1])
+    plt.figure(figsize=(15, 8))
     
-    # Feature and algorithm labels
-    feat_labels = [f"Feature {i+1}" for i in range(max_features)]
-    algo_labels = [f"Algorithm {i+1}" for i in range(max_algos)]
+    # Calculate number of rows needed for subplots
+    n_features = len(selected_features)
+    n_cols = 2  # Raw and transformed
     
-    st.write("### Feature-Algorithm Relationship Analysis")
-    st.write("Select a feature and algorithm to visualize their relationship:")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        selected_feat = st.selectbox("Select Feature", range(max_features), format_func=lambda x: feat_labels[x])
-    with col2:
-        selected_algo = st.selectbox("Select Algorithm", range(max_algos), format_func=lambda x: algo_labels[x])
-    
-    # Create plot
-    fig, ax = plt.subplots(figsize=(10, 6))
-    
-    # Get the data
-    feature_values = output.x[:, selected_feat]
-    algo_performance = output.y_raw[:, selected_algo]
-    is_good = output.y_bin[:, selected_algo]
-    
-    # Create scatter plot
-    ax.scatter(
-        feature_values[is_good], 
-        algo_performance[is_good], 
-        color='green', 
-        label='Good Performance',
-        alpha=0.7
-    )
-    ax.scatter(
-        feature_values[~is_good], 
-        algo_performance[~is_good], 
-        color='red', 
-        label='Poor Performance',
-        alpha=0.7
-    )
-    
-    # Add a threshold line if applicable
-    if hasattr(output, 'abs_perf') and output.abs_perf and hasattr(output, 'epsilon'):
-        ax.axhline(y=output.epsilon, color='blue', linestyle='--', 
-                  label=f'Threshold (ε={output.epsilon:.2f})')
-    
-    ax.set_title(f"Relationship between {feat_labels[selected_feat]} and {algo_labels[selected_algo]} Performance")
-    ax.set_xlabel(feat_labels[selected_feat])
-    ax.set_ylabel(f"{algo_labels[selected_algo]} Performance")
-    ax.legend()
+    for i, feat_idx in enumerate(selected_features):
+        # Raw feature distribution
+        plt.subplot(n_features, n_cols, 2*i+1)
+        raw_feat = prelim_output.x_raw[:, feat_idx]
+        sns.histplot(raw_feat, kde=True)
+        plt.title(f"Raw Feature {feat_idx+1}")
+        plt.xlabel("Value")
+        
+        # Transformed feature distribution
+        plt.subplot(n_features, n_cols, 2*i+2)
+        trans_feat = prelim_output.x[:, feat_idx]
+        sns.histplot(trans_feat, kde=True)
+        plt.title(f"Transformed Feature {feat_idx+1}")
+        plt.xlabel("Value")
     
     plt.tight_layout()
-    st.pyplot(fig)
+    st.pyplot(plt.gcf())
     
-    # Additional feature-performance correlation analysis
-    st.write("### Feature-Performance Correlation Analysis")
+    # Display transformation parameters
+    st.subheader("Feature Transformation Parameters")
     
-    # Calculate correlations between features and algorithm performance
-    correlations = []
-    for i in range(max_features):
-        for j in range(max_algos):
-            feature_vals = output.x[:, i]
-            algo_perf = output.y_raw[:, j]
-            
-            # Calculate correlation coefficient, handle NaN values
-            mask = ~np.isnan(feature_vals) & ~np.isnan(algo_perf)
-            if np.sum(mask) > 1:  # Need at least 2 points for correlation
-                corr = np.corrcoef(feature_vals[mask], algo_perf[mask])[0, 1]
-            else:
-                corr = np.nan
-                
-            correlations.append({
-                'Feature': feat_labels[i],
-                'Algorithm': algo_labels[j],
-                'Correlation': corr
-            })
+    # Create transformation summary
+    transform_data = []
+    for feat_idx in selected_features:
+        transform_data.append({
+            "Feature": f"Feature {feat_idx+1}",
+            "Box-Cox λ": f"{prelim_output.lambda_x[feat_idx]:.4f}",
+            "Mean (μ)": f"{prelim_output.mu_x[feat_idx]:.4f}",
+            "Std Dev (σ)": f"{prelim_output.sigma_x[feat_idx]:.4f}",
+            "Min Value": f"{prelim_output.min_x[feat_idx]:.4f}",
+            "Median": f"{prelim_output.med_val[feat_idx]:.4f}",
+            "IQ Range": f"{prelim_output.iq_range[feat_idx]:.4f}",
+            "Lower Bound": f"{prelim_output.lo_bound[feat_idx]:.4f}",
+            "Upper Bound": f"{prelim_output.hi_bound[feat_idx]:.4f}"
+        })
     
-    corr_df = pd.DataFrame(correlations)
+    # Display the transformation parameters
+    st.table(pd.DataFrame(transform_data))
     
-    # Reshape for heatmap
-    corr_pivot = corr_df.pivot(index='Feature', columns='Algorithm', values='Correlation')
+    # Show bounds visualization
+    st.subheader("Feature Bounds Visualization")
     
-    # Plot correlation heatmap
-    fig, ax = plt.subplots(figsize=(10, 6))
-    sns.heatmap(
-        corr_pivot, 
-        cmap='coolwarm', 
-        center=0,
-        annot=True,
-        fmt=".2f",
-        linewidths=0.5,
-        ax=ax
-    )
+    plt.figure(figsize=(12, 6))
     
-    ax.set_title("Feature-Algorithm Performance Correlation")
+    x = np.arange(len(selected_features))
+    width = 0.2
+    
+    # Plot median values with error bars for IQ range
+    plt.bar(x - width*1.5, [prelim_output.med_val[i] for i in selected_features], 
+            width, label='Median', color='blue', alpha=0.7)
+    
+    # Plot lower bounds
+    plt.bar(x - width/2, [prelim_output.lo_bound[i] for i in selected_features], 
+            width, label='Lower Bound', color='red', alpha=0.7)
+    
+    # Plot upper bounds
+    plt.bar(x + width/2, [prelim_output.hi_bound[i] for i in selected_features], 
+            width, label='Upper Bound', color='green', alpha=0.7)
+    
+    # Plot min values
+    plt.bar(x + width*1.5, [prelim_output.min_x[i] for i in selected_features], 
+            width, label='Min Value', color='orange', alpha=0.7)
+    
+    plt.xlabel('Features')
+    plt.ylabel('Value')
+    plt.title('Feature Bounds Summary')
+    plt.xticks(x, [f"Feature {i+1}" for i in selected_features])
+    plt.legend()
+    plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    st.pyplot(fig)
     
-    st.caption("ℹ️ This analysis shows how features relate to algorithm performance. "
-              "Strong positive correlations (close to 1.0) indicate that as the feature value increases, "
-              "algorithm performance tends to improve. Strong negative correlations (close to -1.0) "
-              "indicate that as the feature value increases, algorithm performance tends to worsen.")
+    st.pyplot(plt.gcf())
 
-
-def viz_3_multi_algorithm_instances(output):
+def visualize_feature_importance(prelim_output, selected_features):
     """
-    Visualizes instances where multiple algorithms perform well (beta=True).
-    
-    This helps understand the beta calculation in the Prelim stage.
+    Visualize feature importance based on algorithm performance correlation
     """
-    # Calculate number of good algorithms per instance
-    num_good_algos = output.num_good_algos
-    total_algos = output.y_bin.shape[1]
+    # Calculate correlation between features and algorithm performance
+    feature_importance = []
     
-    # Get beta value (instances with multiple good algorithms)
-    beta = output.beta
+    for feat_idx in selected_features:
+        feature_values = prelim_output.x[:, feat_idx]
+        
+        # Correlate with binary performance
+        correlations = []
+        for algo_idx in range(prelim_output.y_bin.shape[1]):
+            binary_perf = prelim_output.y_bin[:, algo_idx].astype(float)
+            corr = np.corrcoef(feature_values, binary_perf)[0, 1]
+            correlations.append(corr)
+        
+        # Calculate average absolute correlation
+        avg_abs_corr = np.mean(np.abs(correlations))
+        
+        feature_importance.append({
+            "Feature": f"Feature {feat_idx+1}",
+            "Correlations": correlations,
+            "Average Abs Correlation": avg_abs_corr,
+            "Num Good Algos": prelim_output.num_good_algos[feat_idx],
+            "Beta Selected": "Yes" if prelim_output.beta[feat_idx] else "No"
+        })
     
-    # Create the visualization
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    # Sort by importance
+    feature_importance.sort(key=lambda x: x["Average Abs Correlation"], reverse=True)
     
-    # Histogram of number of good algorithms per instance
-    bins = np.arange(0, total_algos + 2) - 0.5  # Bins centered on integers
-    ax1.hist(num_good_algos, bins=bins, alpha=0.7, color='skyblue', edgecolor='black')
+    # Display feature importance ranking as a table
+    st.subheader("Feature Importance Ranking")
     
-    # Add beta threshold line if we have that information
-    if hasattr(output, 'beta_threshold'):
-        beta_threshold = output.beta_threshold * total_algos
-        ax1.axvline(x=beta_threshold, color='red', linestyle='--', label=f'β Threshold ({beta_threshold:.1f})')
-        ax1.legend()
+    ranking_df = pd.DataFrame([
+        {"Feature": feat["Feature"], 
+         "Average Absolute Correlation": f"{feat['Average Abs Correlation']:.4f}",
+         "Num Good Algorithms": f"{feat['Num Good Algos']:.2f}",
+         "Beta Selected": feat["Beta Selected"]}
+        for feat in feature_importance
+    ])
     
-    ax1.set_title("Distribution of Good Algorithms per Instance")
-    ax1.set_xlabel("Number of Good Algorithms")
-    ax1.set_ylabel("Number of Instances")
-    ax1.set_xticks(range(total_algos + 1))
+    st.table(ranking_df)
     
-    # Pie chart of beta classification
-    beta_counts = [np.sum(~beta), np.sum(beta)]
-    ax2.pie(
-        beta_counts, 
-        labels=['Single Best Algorithm', 'Multiple Good Algorithms (β=True)'],
-        autopct='%1.1f%%',
-        colors=['#ff9999', '#66b3ff'],
-        startangle=90
-    )
-    ax2.set_title("Instance Classification by β")
+    # Create bar chart of feature importance
+    plt.figure(figsize=(10, 6))
     
+    # Extract data for plotting
+    features = [feat["Feature"] for feat in feature_importance]
+    importance_values = [feat["Average Abs Correlation"] for feat in feature_importance]
+    
+    # Create horizontal bar chart
+    bars = plt.barh(features, importance_values, color='teal')
+    
+    # Add value labels
+    for bar, value in zip(bars, importance_values):
+        plt.text(value + 0.01, bar.get_y() + bar.get_height()/2, 
+                f"{value:.3f}", va='center')
+    
+    plt.title("Feature Importance by Average Absolute Correlation")
+    plt.xlabel("Average Absolute Correlation")
+    plt.ylabel("Features")
+    plt.xlim(0, max(importance_values) * 1.15)  # Give some space for the labels
+    plt.grid(axis='x', linestyle='--', alpha=0.7)
     plt.tight_layout()
-    st.pyplot(fig)
     
-    st.caption("ℹ️ This visualization shows the distribution of instances by the number of algorithms that perform well on them. "
-              "The left chart shows how many instances have 0, 1, 2, etc. good algorithms. "
-              "The right chart shows the proportion of instances where multiple algorithms perform well (β=True) "
-              "versus instances with a single best algorithm.")
+    st.pyplot(plt.gcf())
     
-    # Feature analysis for instances with many good algorithms
-    st.write("### Feature Analysis for Beta Classification")
+    # Visualize beta selection
+    st.subheader("Features Selected by Beta Threshold")
     
-    if np.sum(beta) > 0 and np.sum(~beta) > 0:
-        # Calculate feature means for beta=True vs beta=False
-        feat_labels = [f"Feature {i+1}" for i in range(output.x.shape[1])]
-        feature_stats = []
-        
-        for i in range(output.x.shape[1]):
-            feature_vals = output.x[:, i]
-            
-            beta_mean = np.mean(feature_vals[beta])
-            non_beta_mean = np.mean(feature_vals[~beta])
-            
-            feature_stats.append({
-                'Feature': feat_labels[i],
-                'β=True Mean': beta_mean,
-                'β=False Mean': non_beta_mean,
-                'Difference': beta_mean - non_beta_mean,
-                'Ratio': beta_mean / non_beta_mean if non_beta_mean != 0 else float('nan')
-            })
-        
-        stats_df = pd.DataFrame(feature_stats)
-        
-        # Sort by absolute difference to find most discriminative features
-        stats_df['Abs Difference'] = np.abs(stats_df['Difference'])
-        stats_df = stats_df.sort_values('Abs Difference', ascending=False).drop('Abs Difference', axis=1)
-        
-        st.write("Feature statistics by beta classification:")
-        st.dataframe(stats_df, use_container_width=True)
-        
-        # Plot top discriminative features
-        top_n = min(3, len(feat_labels))
-        top_features = stats_df.iloc[:top_n]
-        
-        fig, ax = plt.subplots(figsize=(10, 6))
-        
-        x = np.arange(top_n)
-        width = 0.35
-        
-        ax.bar(x - width/2, top_features['β=True Mean'], width, label='β=True (Multiple Good Algorithms)')
-        ax.bar(x + width/2, top_features['β=False Mean'], width, label='β=False (Single Best Algorithm)')
-        
-        ax.set_xticks(x)
-        ax.set_xticklabels(top_features['Feature'], rotation=45, ha='right')
-        ax.set_title("Feature Comparison by Beta Classification")
-        ax.set_ylabel("Feature Mean Value")
-        ax.legend()
-        
-        plt.tight_layout()
-        st.pyplot(fig)
-        
-        st.caption("This chart compares feature values between instances with multiple good algorithms (β=True) "
-                  "and instances with a single best algorithm (β=False). "
-                  "Large differences suggest that these features strongly influence whether multiple algorithms perform well.")
-    else:
-        st.info("Not enough data to compare features between beta groups. Need instances in both β=True and β=False categories.")
+    plt.figure(figsize=(10, 6))
+    
+    # Extract beta selection data
+    beta_selection = [1 if prelim_output.beta[i] else 0 for i in selected_features]
+    feature_names = [f"Feature {i+1}" for i in selected_features]
+    
+    # Create bar chart with color based on selection
+    colors = ['green' if b else 'red' for b in beta_selection]
+    plt.bar(feature_names, beta_selection, color=colors)
+    
+    plt.title("Feature Selection by Beta Threshold")
+    plt.xlabel("Features")
+    plt.ylabel("Selected (1) / Not Selected (0)")
+    plt.yticks([0, 1])
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    
+    st.pyplot(plt.gcf())
+    
+    # Show number of good algorithms per feature
+    st.subheader("Number of Good Algorithms per Feature")
+    
+    plt.figure(figsize=(12, 6))
+    
+    # Sort features by number of good algorithms
+    sorted_indices = sorted(selected_features, 
+                            key=lambda x: prelim_output.num_good_algos[x], 
+                            reverse=True)
+    sorted_feature_names = [f"Feature {i+1}" for i in sorted_indices]
+    good_algo_counts = [prelim_output.num_good_algos[i] for i in sorted_indices]
+    
+    # Create bar chart
+    bars = plt.bar(sorted_feature_names, good_algo_counts, color='purple')
+    
+    # Add count labels
+    for bar, count in zip(bars, good_algo_counts):
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.1, 
+                f"{count:.1f}", ha='center', va='bottom')
+    
+    plt.title("Number of Good Algorithms per Feature")
+    plt.xlabel("Features")
+    plt.ylabel("Number of Good Algorithms")
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    
+    st.pyplot(plt.gcf())
 
+def create_prelim_output_zip(cached_output):
+    """
+    Create a single consolidated CSV file for transfer to the next stage.
+    """
+    # Create temporary directory
+    tmp_dir = "temp_files"
+    os.makedirs(tmp_dir, exist_ok=True)
+    
+    # Create a consolidated DataFrame with all essential data
+    # First, we'll create a base DataFrame with one row
+    consolidated_df = pd.DataFrame({
+        "total_instances": [cached_output.x.shape[0]],
+        "total_features": [cached_output.x.shape[1]],
+        "total_algorithms": [cached_output.y.shape[1]],
+        "min_y": [float(cached_output.min_y) if cached_output.min_y is not None else 0.0]
+    })
+    
+    # Add matrices as flattened arrays with sizes
+    # For each matrix, we'll add:
+    # 1. A column for the flattened array (as a string representation)
+    # 2. A column for the shape (as a string representation)
+    
+    # Helper function to add matrix to DataFrame
+    def add_matrix_to_df(df, matrix, name):
+        # Convert matrix to string (flattened)
+        matrix_str = str(matrix.reshape(-1).tolist())
+        # Convert shape to string
+        shape_str = str(list(matrix.shape))
+        
+        # Add to DataFrame
+        df[f"{name}_data"] = [matrix_str]
+        df[f"{name}_shape"] = [shape_str]
+        
+        return df
+    
+    # Add all matrices
+    consolidated_df = add_matrix_to_df(consolidated_df, cached_output.x, "x")
+    consolidated_df = add_matrix_to_df(consolidated_df, cached_output.y, "y")
+    consolidated_df = add_matrix_to_df(consolidated_df, cached_output.y_bin, "y_bin")
+    consolidated_df = add_matrix_to_df(consolidated_df, cached_output.x_raw, "x_raw")
+    consolidated_df = add_matrix_to_df(consolidated_df, cached_output.y_raw, "y_raw")
+    
+    # Add 1D arrays as strings
+    if cached_output.beta is not None:
+        consolidated_df["beta"] = [str(cached_output.beta.tolist())]
+    if cached_output.num_good_algos is not None:
+        consolidated_df["num_good_algos"] = [str(cached_output.num_good_algos.tolist())]
+    if cached_output.y_best is not None:
+        consolidated_df["y_best"] = [str(cached_output.y_best.tolist())]
+    if cached_output.p is not None:
+        consolidated_df["p"] = [str(cached_output.p.tolist())]
+    
+    # Add transformation parameters
+    if cached_output.med_val is not None:
+        consolidated_df["med_val"] = [str(cached_output.med_val.tolist())]
+    if cached_output.iq_range is not None:
+        consolidated_df["iq_range"] = [str(cached_output.iq_range.tolist())]
+    if cached_output.hi_bound is not None:
+        consolidated_df["hi_bound"] = [str(cached_output.hi_bound.tolist())]
+    if cached_output.lo_bound is not None:
+        consolidated_df["lo_bound"] = [str(cached_output.lo_bound.tolist())]
+    if cached_output.min_x is not None:
+        consolidated_df["min_x"] = [str(cached_output.min_x.tolist())]
+    if cached_output.lambda_x is not None:
+        consolidated_df["lambda_x"] = [str(cached_output.lambda_x.tolist())]
+    if cached_output.mu_x is not None:
+        consolidated_df["mu_x"] = [str(cached_output.mu_x.tolist())]
+    if cached_output.sigma_x is not None:
+        consolidated_df["sigma_x"] = [str(cached_output.sigma_x.tolist())]
+    if cached_output.lambda_y is not None:
+        consolidated_df["lambda_y"] = [str(cached_output.lambda_y.tolist())]
+    if cached_output.sigma_y is not None:
+        consolidated_df["sigma_y"] = [str(cached_output.sigma_y.tolist())]
+    if cached_output.mu_y is not None:
+        consolidated_df["mu_y"] = [str(cached_output.mu_y.tolist())]
+    
+    # Add instance labels and source series if available
+    if cached_output.instlabels is not None:
+        consolidated_df["instlabels"] = [str(cached_output.instlabels.tolist())]
+    if cached_output.s is not None:
+        consolidated_df["s"] = [str(cached_output.s.tolist())]
+    
+    # Flag for data_dense
+    consolidated_df["data_dense_available"] = [cached_output.data_dense is not None]
+    
+    # Save to CSV
+    csv_path = os.path.join(tmp_dir, "prelim_output.csv")
+    consolidated_df.to_csv(csv_path, index=False)
+    
+    # Create zip file with just this one file
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(csv_path, arcname=os.path.basename(csv_path))
+
+    # Clean up temporary file
+    if os.path.exists(csv_path):
+        os.remove(csv_path)
+    
+    # Remove the temp directory if it's empty
+    try:
+        os.rmdir(tmp_dir)
+    except:
+        pass
+
+    # Return the zip file as bytes
+    buffer.seek(0)
+    return buffer.getvalue()
 
 def show():
-    st.header("🔬 Prelim Stage")
+    """
+    Main Streamlit show function for Prelim stage
+    """
+    st.header("Preliminary Stage: Algorithm Performance Analysis")
     
-    # Check if preprocessing has been run
-    if not cache_exists("preprocessing_output.pkl"):
-        st.error("🚫 Preprocessing output not found. Please run the Preprocessing stage first.")
-        if st.button("Go to Preprocessing Stage"):
-            st.session_state.current_tab = "preprocessing"
-            st.experimental_rerun()
+    # Load preprocessing output
+    preprocessing_output = load_from_cache("preprocessing_output.pkl")
+    
+    if preprocessing_output is None:
+        st.error("Please run the Preprocessing stage first.")
         return
-    else:
-        preprocessing_output = load_from_cache("preprocessing_output.pkl")
-        st.success("✅ Preprocessing data loaded successfully!")
     
-    # Configuration Section
-    st.subheader("⚙️ Configure Prelim Options")
+    # Configuration in central area instead of side column
+    st.subheader("Preliminary Stage Configuration")
     
-    with st.form("prelim_config_form"):
-        col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Performance direction
+        max_perf = st.radio(
+            "Performance Direction", 
+            options=[True, False],
+            format_func=lambda x: "Maximize Performance" if x else "Minimize Performance",
+            index=0
+        )
+        
+        # Absolute or relative performance
+        abs_perf = st.radio(
+            "Performance Threshold Type", 
+            options=[True, False],
+            format_func=lambda x: "Absolute Threshold" if x else "Relative to Best (%)",
+            index=1
+        )
+    
+    with col2:
+        # Performance threshold (epsilon)
+        epsilon = st.slider(
+            "Performance Threshold (ε)", 
+            min_value=0.0, 
+            max_value=1.0, 
+            value=0.1, 
+            step=0.01
+        )
+        
+        # Beta threshold for algorithm selection
+        beta_threshold = st.slider(
+            "Beta Threshold", 
+            min_value=0.0, 
+            max_value=1.0, 
+            value=0.1, 
+            step=0.01
+        )
+    
+    with col3:
+        # Data processing options
+        bound = st.checkbox("Remove Outliers", value=True)
+        norm = st.checkbox("Normalize Data", value=True)
+        
+        # Advanced options in a more compact form
+        small_scale_flag = st.checkbox("Use Small Scale Experiment", value=False)
+        density_flag = st.checkbox("Use Density-based Filtering", value=False)
+    
+    # Run button centered
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Run Preliminary Analysis", type="primary", use_container_width=True):
+            # Create default values for advanced options
+            small_scale = 0.5
+            min_distance = 0.5
+            selvars_type = "manual"
+            
+            # Create options objects
+            prelim_options = PrelimOptions(
+                max_perf=max_perf,
+                abs_perf=abs_perf,
+                epsilon=epsilon,
+                beta_threshold=beta_threshold,
+                bound=bound,
+                norm=norm
+            )
+            
+            selvars_options = SelvarsOptions(
+                feats=None,
+                algos=None,
+                small_scale_flag=small_scale_flag,
+                small_scale=small_scale,
+                file_idx_flag=False,
+                file_idx=None,
+                selvars_type=selvars_type,
+                min_distance=min_distance,
+                density_flag=density_flag
+            )
+            
+            # Run preliminary stage
+            prelim_output = run_prelim(
+                preprocessing_output, 
+                prelim_options,
+                selvars_options
+            )
+            
+            # Store the result in session state for visualization
+            if prelim_output is not None:
+                st.session_state.prelim_output = prelim_output
+                st.session_state.prelim_options = prelim_options
+                st.session_state.selvars_options = selvars_options
+                
+                # Save the output directly for the next stage
+                # Use our custom saving function instead of save_to_cache
+                if manually_save_output(prelim_output):
+                    st.success("Preliminary stage completed. Data saved for the next stage.")
+                else:
+                    st.warning("Could not save data for next stage. The analysis results are still available for viewing.")
+    
+    # Visualization section
+    if 'prelim_output' in st.session_state:
+        prelim_output = st.session_state.prelim_output
+        
+        # Summary statistics
+        st.subheader("Summary Statistics")
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.subheader("Performance Settings")
-            max_perf = st.checkbox("Maximize Performance", value=True, 
-                                help="If checked, higher values are better. If unchecked, lower values are better.")
-            abs_perf = st.checkbox("Absolute Performance", value=True,
-                                 help="If checked, use absolute performance threshold. If unchecked, use relative to best.")
-            epsilon = st.slider("Performance Threshold (ε)", 
-                              min_value=0.0, max_value=1.0, value=0.1, step=0.01,
-                              help="Performance threshold for determining good algorithms")
-            beta_threshold = st.slider("Beta Threshold", 
-                                    min_value=0.0, max_value=1.0, value=0.1, step=0.01,
-                                    help="Threshold for determining good instances")
-        
+            st.metric("Total Instances", prelim_output.x.shape[0])
         with col2:
-            st.subheader("Data Transformation")
-            bound = st.checkbox("Remove Outliers", value=True, 
-                              help="If checked, outliers will be removed")
-            norm = st.checkbox("Normalize Data", value=True,
-                             help="If checked, data will be normalized")
-            
-            small_scale_flag = st.checkbox("Use Small-Scale Experiment", value=False)
-            small_scale = st.slider("Small-Scale Percentage", 
-                                  min_value=0.1, max_value=0.9, value=0.5, step=0.1,
-                                  disabled=not small_scale_flag)
-            
-            density_flag = st.checkbox("Filter by Density", value=False)
-            min_distance = st.slider("Minimum Distance", 
-                                   min_value=0.0, max_value=1.0, value=0.5, step=0.1,
-                                   disabled=not density_flag)
+            st.metric("Total Features", prelim_output.x.shape[1])
+        with col3:
+            st.metric("Total Algorithms", prelim_output.y.shape[1])
         
-        submit_button = st.form_submit_button("Run Prelim Stage")
-    
-    if submit_button:
-        try:
-            with st.spinner("Running Prelim stage..."):
-                # Create options for Prelim
-                prelim_options = PrelimOptions(
-                    max_perf=max_perf,
-                    abs_perf=abs_perf,
-                    epsilon=epsilon,
-                    beta_threshold=beta_threshold,
-                    bound=bound,
-                    norm=norm
-                )
-                
-                selvars_options = SelvarsOptions(
-                    feats=None,  # Using all features from preprocessing stage
-                    algos=None,  # Using all algorithms from preprocessing stage
-                    small_scale_flag=small_scale_flag,
-                    small_scale=small_scale,
-                    file_idx_flag=False,
-                    file_idx=None,
-                    selvars_type="manual" if not density_flag else "density",
-                    min_distance=min_distance if density_flag else 0.0,
-                    density_flag=density_flag
-                )
-                
-                # Run the Prelim stage with our custom implementation
-                prelim_output = run_prelim(preprocessing_output, prelim_options, selvars_options)
-                
-                if prelim_output is not None:
-                    # Save to session state and cache
-                    st.session_state["prelim_output"] = prelim_output
-                    st.session_state["ran_prelim"] = True
-                    save_to_cache(prelim_output, "prelim_output.pkl")
-                    
-                    # Show success message
-                    st.toast("✅ Prelim stage run successfully!", icon="🚀")
-        except Exception as e:
-            st.error(f"Error running Prelim stage: {str(e)}")
-            st.code(traceback.format_exc())
-    
-    # Display results if available
-    if st.session_state.get("ran_prelim", False) or cache_exists("prelim_output.pkl"):
-        try:
-            if "prelim_output" not in st.session_state and cache_exists("prelim_output.pkl"):
-                st.session_state["prelim_output"] = load_from_cache("prelim_output.pkl")
-                st.session_state["ran_prelim"] = True
+        # Display parameter choices
+        st.subheader("Analysis Parameters")
+        
+        params_dict = {
+            "Performance Direction": "Maximize" if st.session_state.prelim_options.max_perf else "Minimize",
+            "Threshold Type": "Absolute" if st.session_state.prelim_options.abs_perf else "Relative (%)",
+            "Epsilon Threshold": f"{st.session_state.prelim_options.epsilon:.2f}",
+            "Beta Threshold": f"{st.session_state.prelim_options.beta_threshold:.2f}",
+            "Outlier Removal": "Enabled" if st.session_state.prelim_options.bound else "Disabled",
+            "Normalization": "Enabled" if st.session_state.prelim_options.norm else "Disabled"
+        }
+        
+        st.table(pd.DataFrame([params_dict]).T.rename(columns={0: "Value"}))
+        
+        # Tabs for different visualization aspects
+        tab1, tab2, tab3, tab4 = st.tabs([
+            "Binary Performance", 
+            "Performance Distribution", 
+            "Feature Transformations", 
+            "Feature Importance"
+        ])
+        
+        with tab1:
+            # Algorithm selection
+            num_algorithms = prelim_output.y.shape[1]
+            selected_algorithms = st.multiselect(
+                "Select Algorithms to Visualize", 
+                options=list(range(num_algorithms)), 
+                default=list(range(min(5, num_algorithms))),
+                format_func=lambda x: f"Algorithm {x+1}"
+            )
             
-            output = st.session_state["prelim_output"]
-            
-            # Summary Section
-            st.subheader("📊 Summary")
-            
-            # Create a safer summary that checks for attribute existence
-            summary_data = {
-                "Metric": [
-                    "Number of Instances",
-                    "Number of Features",
-                    "Number of Algorithms",
-                    "Good Algorithms (avg per instance)",
-                    "Good Instances (beta=True)",
-                    "Optimization Direction",
-                    "Performance Threshold Type", 
-                    "Epsilon Value",
-                    "Beta Threshold"
-                ],
-                "Value": [
-                    output.x.shape[0],
-                    output.x.shape[1],
-                    output.y.shape[1],
-                    round(float(np.mean(output.num_good_algos)), 2),
-                    int(np.sum(output.beta)),
-                    "Maximize" if hasattr(output, "max_perf") and output.max_perf else "Minimize",
-                    "Absolute" if hasattr(output, "abs_perf") and output.abs_perf else "Relative",
-                    float(output.epsilon) if hasattr(output, "epsilon") else 0.1,
-                    float(output.beta_threshold) if hasattr(output, "beta_threshold") else 0.1
-                ],
-                "Description": [
-                    "Total number of problem instances after filtering",
-                    "Number of features selected for analysis",
-                    "Number of algorithms in comparison",
-                    "Average number of algorithms that performed well per instance",
-                    "Number of instances where multiple algorithms perform well",
-                    "Whether higher (maximize) or lower (minimize) values are better",
-                    "Whether threshold is absolute or relative to best performance",
-                    "Threshold used to determine good performance (epsilon)",
-                    "Threshold for determining instances with multiple good algorithms"
-                ]
-            }
-            df_summary = pd.DataFrame(summary_data)
-            st.dataframe(df_summary, use_container_width=True)
-            
-            # Visualization tabs
-            viz_tabs = st.tabs([
-                "Algorithm Performance", 
-                "Feature-Algorithm Relationships", 
-                "Beta Analysis"
-            ])
-            
-            with viz_tabs[0]:
-                viz_1_algorithm_performance_comparison(output)
-                
-            with viz_tabs[1]:
-                viz_2_feature_algorithm_relationship(output)
-                
-            with viz_tabs[2]:
-                viz_3_multi_algorithm_instances(output)
-            
-            st.success("✅ Prelim stage completed and visualized.")
-            
-            # Download Button
-            st.subheader("📥 Download Prelim Results")
-            
-            if cache_exists("prelim_output.pkl"):
-                cached_output = load_from_cache("prelim_output.pkl")
-                
-                # Create dataframes from outputs
-                try:
-                    features_df = pd.DataFrame(
-                        cached_output.x, 
-                        columns=[f"Feature {i+1}" for i in range(cached_output.x.shape[1])]
-                    )
-                    performance_df = pd.DataFrame(
-                        cached_output.y, 
-                        columns=[f"Algo {i+1}" for i in range(cached_output.y.shape[1])]
-                    )
-                    
-                    # Save binary performance to a temporary file
-                    binary_df = pd.DataFrame(
-                        cached_output.y_bin, 
-                        columns=[f"Algo {i+1}" for i in range(cached_output.y_bin.shape[1])]
-                    )
-                    tmp_dir = "temp_files"
-                    os.makedirs(tmp_dir, exist_ok=True)
-                    binary_path = os.path.join(tmp_dir, "binary_performance.csv")
-                    binary_df.to_csv(binary_path, index=False)
-                    
-                    # Create the zip with standard parameters
-                    zip_data = create_stage_output_zip(
-                        x=features_df,
-                        y=performance_df,
-                        instance_labels=cached_output.instlabels if hasattr(cached_output, 'instlabels') else None,
-                        source_labels=cached_output.s if hasattr(cached_output, 's') else None,
-                        metadata_description="Processed features and algorithm performance from Prelim stage."
-                    )
-                    
-                    # Manual approach to add binary performance to the zip
-                    buffer = io.BytesIO()
-                    with zipfile.ZipFile(buffer, "a") as new_zip:
-                        # Read the existing zip file content
-                        with zipfile.ZipFile(io.BytesIO(zip_data), "r") as old_zip:
-                            for item in old_zip.infolist():
-                                data = old_zip.read(item.filename)
-                                new_zip.writestr(item, data)
-                        
-                        # Add binary_performance.csv to the zip
-                        new_zip.write(binary_path, arcname="binary_performance.csv")
-                    
-                    # Get the bytes from the in-memory zip file
-                    buffer.seek(0)
-                    zip_data_with_binary = buffer.getvalue()
-                    
-                    # Clean up temporary file
-                    if os.path.exists(binary_path):
-                        os.remove(binary_path)
-                    
-                    st.download_button(
-                        label="⬇️ Download Prelim Output (ZIP)",
-                        data=zip_data_with_binary,
-                        file_name="prelim_output.zip",
-                        mime="application/zip"
-                    )
-                except Exception as e:
-                    st.error(f"Error creating download package: {str(e)}")
-                    st.code(traceback.format_exc())
+            if selected_algorithms:
+                visualize_binary_performance(prelim_output, selected_algorithms)
             else:
-                st.warning("⚠️ No prelim cache found. Please click **Run Prelim Stage** first.")
-            
-            # Delete cache Button
-            st.subheader("🗑️ Cache Management")
-            
-            if st.button("❌ Delete Prelim Cache"):
-                success = delete_cache("prelim_output.pkl")
-                if success:
-                    st.success("🗑️ Prelim cache deleted.")
-                    if "prelim_output" in st.session_state:
-                        del st.session_state["prelim_output"]
-                    if "ran_prelim" in st.session_state:
-                        del st.session_state["ran_prelim"]
-                else:
-                    st.warning("⚠️ No cache file found to delete.")
+                st.info("Please select at least one algorithm to visualize")
         
-        except Exception as e:
-            st.error(f"Error displaying Prelim results: {str(e)}")
-            st.code(traceback.format_exc())
+        with tab2:
+            # Algorithm selection
+            num_algorithms = prelim_output.y.shape[1]
+            selected_algorithms = st.multiselect(
+                "Select Algorithms to Visualize", 
+                options=list(range(num_algorithms)), 
+                default=list(range(min(3, num_algorithms))),
+                format_func=lambda x: f"Algorithm {x+1}",
+                key="perf_dist_algos"
+            )
+            
+            if selected_algorithms:
+                visualize_performance_distribution(prelim_output, selected_algorithms)
+            else:
+                st.info("Please select at least one algorithm to visualize")
+        
+        with tab3:
+            # Feature selection
+            num_features = prelim_output.x.shape[1]
+            selected_features = st.multiselect(
+                "Select Features to Visualize", 
+                options=list(range(num_features)), 
+                default=list(range(min(3, num_features))),
+                format_func=lambda x: f"Feature {x+1}"
+            )
+            
+            if selected_features:
+                visualize_feature_transformations(prelim_output, selected_features)
+            else:
+                st.info("Please select at least one feature to visualize")
+        
+        with tab4:
+            # Feature selection
+            num_features = prelim_output.x.shape[1]
+            selected_features = st.multiselect(
+                "Select Features to Visualize", 
+                options=list(range(num_features)), 
+                default=list(range(min(5, num_features))),
+                format_func=lambda x: f"Feature {x+1}",
+                key="feat_imp_features"
+            )
+            
+            if selected_features:
+                visualize_feature_importance(prelim_output, selected_features)
+            else:
+                st.info("Please select at least one feature to visualize")
+        
+        # Download Section
+        st.subheader("Download Results")
+        
+        # Create download button with single CSV file
+        zip_data = create_prelim_output_zip(prelim_output)
+        
+        st.download_button(
+            label="Download Prelim Output (ZIP)",
+            data=zip_data,
+            file_name="prelim_output.zip",
+            mime="application/zip",
+            help="Download comprehensive Prelim stage output"
+        )
+        
+        # Success message for next stage
+        st.success("Preliminary stage completed. You can proceed to the next stage (SIFTED).")
+    else:
+        # Instructions
+        st.info("Configure parameters and click 'Run Preliminary Analysis' to begin.")
+
+# Run the main function
+if __name__ == "__main__":
+    show()
