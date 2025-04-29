@@ -85,12 +85,12 @@ def show():
                 "Processed Algorithm Matrix"
             ],
             "Value": [
-                output.x.shape[0],
-                output.x_raw.shape[1],
-                output.y_raw.shape[1],
-                len(output.feat_labels),
-                len(output.algo_labels),
-                int(np.isnan(output.x).sum()),
+                str(output.x.shape[0]),
+                str(output.x_raw.shape[1]),
+                str(output.y_raw.shape[1]),
+                str(len(output.feat_labels)),
+                str(len(output.algo_labels)),
+                str(int(np.isnan(output.x).sum())),
                 f"{output.x.shape[0]} rows × {output.x.shape[1]} columns",
                 f"{output.y.shape[0]} rows × {output.y.shape[1]} columns"
             ],
