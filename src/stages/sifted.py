@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
 import traceback
+import io
 
-def display_sifted_output(sifted_out):
+def display_sifted_output(sifted_out, preprocessing_output):
 
     """
     Visualization：
@@ -26,9 +27,16 @@ def display_sifted_output(sifted_out):
     sel = sifted_out.selvars               
     rho_sel = rho_full[sel, :]             # shape = (n_sel_feats, n_algos)
     feat_labels = sifted_out.feat_labels   
+    algo_names = preprocessing_output.algo_labels
 
     # —— 1. Feature Importance —— 
     st.subheader("📊 Selected Feature Importance")
+    with st.expander("❓ What is this chart?"):
+        st.write(
+            "Each bar shows the maximum absolute Pearson correlation of that feature "
+            "with any algorithm. It highlights which features have the strongest predictive signal."
+        )
+        
     if rho_sel.size:
         feat_imp = rho_sel.max(axis=1)     # choose max |ρ| in each selected feature
         df_imp = pd.DataFrame(
@@ -36,25 +44,72 @@ def display_sifted_output(sifted_out):
             index=feat_labels
         )
         st.bar_chart(df_imp)
+        # downlod the image
+        fig, ax = plt.subplots()
+        df_imp.plot.bar(ax=ax)
+        ax.set_ylabel("Max |ρ|")
+        ax.set_title("Selected Feature Importance")
+        plt.tight_layout()
+
+        # 1) Turn it into a PNG buffer
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+        buf.seek(0)
+
+        # 2) Offer that buffer as a download
+        st.download_button(
+            label="📥 Download Plot as PNG",
+            data=buf,
+            file_name="feature_importance.png",
+            mime="image/png",
+        )
     else:
         st.info("No selected features to plot importance.")
+    
 
     # —— 2. Correlation Heatmap —— 
-    st.subheader("🗺️ Correlation Heatmap")
+    st.subheader("🗺️ Weights for features")
+
+    print("==========================================")
+    print(sifted_out.x.shape)
+    print(sifted_out.y.shape)
+    print(algo_names)
+    print(sifted_out.clust)
+    print(sifted_out.clust.shape)
+    print(sifted_out.feat_labels)
+    print([f"feat_{i}" for i in range(sifted_out.clust.shape[0])])
+    print([f"Cluster {j}" for j in range(sifted_out.clust.shape[1])])
+    print("==========================================")
+
     if rho_sel.size:
         fig, ax = plt.subplots(
             figsize=(6, max(3, len(feat_labels)*0.3))
         )
         im = ax.imshow(rho_sel, aspect="auto", cmap="viridis")
+
         ax.set_yticks(np.arange(len(feat_labels)))
         ax.set_yticklabels(feat_labels, fontsize=8)
-        ax.set_xticks(np.arange(sifted_out.y.shape[1]))
+
+        ax.set_xticks(np.arange(len(algo_names)))
         ax.set_xticklabels(
-            [f"algo{i+1}" for i in range(sifted_out.y.shape[1])],
-            rotation=90, fontsize=8
+            algo_names,
+            rotation=90, 
+            fontsize=8
         )
         fig.colorbar(im, ax=ax, label="|ρ|")
         st.pyplot(fig)
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+        buf.seek(0)
+
+        # Download button
+        st.download_button(
+            label="📥 Download Weight Heatmap",
+            data=buf,
+            file_name="Weights_for_features.png",
+            mime="image/png",
+        )
     else:
         st.info("No correlation matrix to display.")
 
@@ -304,7 +359,7 @@ def show():
                 st.session_state["ran_sifted"] = True
             
             sifted_output = st.session_state["sifted_output"]
-            display_sifted_output(sifted_output)
+            display_sifted_output(sifted_output, preprocessing_output)
             st.subheader("🗑️ Cache Management")
             if st.button("❌ Delete Sifted Cache"):
                 success = delete_cache("sifted_output.pkl")
