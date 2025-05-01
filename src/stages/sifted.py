@@ -69,18 +69,6 @@ def display_sifted_output(sifted_out, preprocessing_output):
 
     # —— 2. Correlation Heatmap —— 
     st.subheader("🗺️ Weights for features")
-
-    print("==========================================")
-    print(sifted_out.x.shape)
-    print(sifted_out.y.shape)
-    print(algo_names)
-    print(sifted_out.clust)
-    print(sifted_out.clust.shape)
-    print(sifted_out.feat_labels)
-    print([f"feat_{i}" for i in range(sifted_out.clust.shape[0])])
-    print([f"Cluster {j}" for j in range(sifted_out.clust.shape[1])])
-    print("==========================================")
-
     if rho_sel.size:
         fig, ax = plt.subplots(
             figsize=(6, max(3, len(feat_labels)*0.3))

@@ -1,0 +1,42 @@
+Attribute,Value
+Median Values (med_val),"[0.2555181053766895, 31.6401266759, 4.613852040339999]"
+Interquartile Range (iq_range),"[0.507135312575987, 124.90330474201, 5.13409756053]"
+Upper Bound (hi_bound),"[2.7911946682566247, 656.15665038595, 30.28433984299]"
+Lower Bound (lo_bound),"[-2.2801584575032456, -592.87639703415, -21.056635762310002]"
+Minimum X (min_x),"[3.75e-05, 2.89e-05, 0.0170762613631]"
+Box-Cox Lambda X (lambda_x),"[-1.3801875000000015, 0.05362500000000002, 0.10700000000000007]"
+Mean X (mu_x),"[0.18738122942963867, 3.5464155365127725, 1.8581446170807683]"
+Std Dev X (sigma_x),"[0.15262890032558524, 2.3650498743962816, 0.6812683437048982]"
+Minimum Y (min_y),2.0
+Box-Cox Lambda Y (lambda_y),"[0.16643750000000013, 0.17756250000000012, 0.17462500000000014, 0.17475000000000013, 0.17368750000000013, 0.17356250000000012, 0.17325000000000013, 0.17506250000000012]"
+Std Dev Y (sigma_y),"[2.611333494393659, 3.143790032514273, 3.134786604366093, 3.0770830258053112, 3.0278564147938525, 3.0358894527824063, 3.0393478563505485, 2.9505175508833115]"
+Mean Y (mu_y),"[4.1296209426298365, 3.6979107002725846, 3.5746248965047482, 3.4619440425557606, 3.3413463647588184, 3.3505761119550406, 3.349028700419065, 3.445338399585196]"
+Best Performance (y_best),"{'type': 'float64', 'shape': (6712,), 'min': 2.0, 'max': 944.0, 'mean': 53.536799761620976}"
+Algorithm Indices (p),"{'type': 'int64', 'shape': (6712,), 'min': 1, 'max': 8, 'mean': 1.0317342073897497}"
+Good Algorithms Count (num_good_algos),"{'type': 'int32', 'shape': (6712,), 'min': 1, 'max': 8, 'mean': 2.004916567342074}"
+Beta Classification (beta),"{'type': 'bool', 'shape': (6712,), 'min': True, 'max': True, 'mean': 1.0}"
+Instance Labels,"0       Bipartite-000-730Nodes-21393Edges-00000ExtraEdges
+1       Bipartite-001-730Nodes-21393Edges-00100ExtraEdges
+2       Bipartite-002-730Nodes-21393Edges-01000ExtraEdges
+3       Bipartite-003-730Nodes-21393Edges-02000ExtraEdges
+4       Bipartite-004-730Nodes-21393Edges-03000ExtraEdges
+                              ...                        
+6707                                        Random500_401
+6708                                        Random500_426
+6709                                        Random500_451
+6710                                         Random500_51
+6711                                         Random500_76
+Name: Instances, Length: 6712, dtype: object"
+Source Labels,"0       Bipartite
+1       Bipartite
+2       Bipartite
+3       Bipartite
+4       Bipartite
+          ...    
+6707       Random
+6708       Random
+6709       Random
+6710       Random
+6711       Random
+Name: Source, Length: 6712, dtype: object"
+Data Dense,Not Available
