@@ -18,7 +18,7 @@ The goal of this project is to create a dashboard that visualizes and supports t
 
 Ensure the following tools are installed:
 
-- [Python 3.8+](https://www.python.org/downloads/)
+- [Python 3.12+](https://www.python.org/downloads/)
 - `pip` (comes with Python)
 - Virtual environment tool (`venv` or `conda` recommended)
 
@@ -72,15 +72,72 @@ streamlit run src/app.py
 
 ---
 
-## GitHub Workflow (Sprint 1)
+## GitHub Workflow
 
+### 1. Branching Strategy  
 We follow a **GitFlow**-based branching strategy:
 
-- `master` – stable release
-- `develop` – main development branch
-- `feature/<name>` – for new features
-- `release/<sprint>` – for packaging deliverables
-- `hotfix/<issue>` – for urgent fixes
+| Branch                 | Purpose                                 |
+|------------------------|-----------------------------------------|
+| `master`               | Stable releases                         |
+| `develop`              | Main development branch                 |
+| `feature/<name>`       | New features (branched off `develop`)   |
+| `release/<sprint>`     | Preparation for a sprint release        |
+| `hotfix/<issue>`       | Urgent fixes for `master` or `release`  |
+
+---
+### 2. Sprint Workflow
+
+#### a. Sprint Kick-off & Feature Branching  
+- **When**: As soon as the sprint backlog is finalized.  
+- **How**:  
+  ```bash
+  git checkout develop
+  git pull origin develop
+  git checkout -b feature/<descriptive-name>
+  ```  
+- **Naming**: Use descriptive names, e.g. feature/user-authentication.
+
+#### b. **Ongoing Integration & Pull Requests**  
+   - Developers regularly commit and push to their feature branches.  
+   - When a feature is “ready for review,” open a Pull Request targeting `develop`.  
+   - The team conducts code review, addresses feedback, and only after approval and passing CI checks is the branch merged back into `develop`.  
+   - **Never** merge directly into `develop` without a PR.
+
+#### c. **Daily Syncs & Conflict Resolution**  
+   - To minimize drift, each morning (or before starting new work) pull the latest `develop` into your feature branch:  
+     ```bash
+     git fetch origin  
+     git checkout feature/<name>  
+     git rebase origin/develop  
+     ```  
+   - Resolve any conflicts immediately, then force-push the rebased branch (`git push --force-with-lease`).
+
+#### d. **Release Branch Creation**  
+   - When the sprint’s scope is complete (all targeted features merged into `develop`), we cut a release branch:  
+     ```bash
+     git checkout develop  
+     git pull origin develop  
+     git checkout -b release/<sprint-number>  
+     ```  
+   - This branch is used for final QA, documentation updates, and any last-minute adjustments (e.g., version bump, changelog entry).
+
+#### e. **Release Stabilization & Hotfixes**  
+   - **Only bug fixes or release-specific tweaks** are merged into `release/<sprint>`. All new features must wait for the next sprint.  
+   - If a critical bug is discovered _after_ the release branch is cut, create a `hotfix/<issue>` branch from `release/<sprint>` (or `master` if already released), fix the issue, then merge back into both `release/<sprint>` and `develop` once verified.
+
+#### f. **Final Release Merge**  
+   - Once QA signs off on `release/<sprint>`, merge it into `master` (triggering the official deploy/tag) and back into `develop` to ensure that any final tweaks are not lost:  
+     ```bash
+     git checkout master  
+     git merge --no-ff release/<sprint>  
+     git tag v<version>  
+     git checkout develop  
+     git merge --no-ff release/<sprint>  
+     ```  
+   - Delete the `release/<sprint>` branch after merging.
+
+### 3. Commit Message Conventions
 
  Commit messages follow this format:  
 `<type>(<scope>): <short description>`
