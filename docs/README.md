@@ -51,10 +51,9 @@
   - [Ethical Considerations](Mitigation%20Strategies.md#ethical-considerations)
   - [Cyber Security Considerations](Mitigation%20Strategies.md#cyber-security-considerations)
 
-## Product Demonstration & Deployment  
-- [End of Sprint 2](Product-Demonstration-&-Deployment) 
+##  Product Demonstration & Deployment  
+- [End of Sprint 2](Product-Demonstration%26Deployment.md)
 
 
-
-## 🧰 Code Implementation Plan
+## Code Implementation Plan
 - [Visualization Plan Part 1](Visualization%20Plan%20Part%201.md)
