@@ -53,21 +53,6 @@
   - [Ethical Considerations](Mitigation-Strategies#ethical-considerations)  
   - [Cyber Security Considerations](Mitigation-Strategies#cyber-security-considerations) 
 
-## Meeting Notes  
-- **Client Meetings**  
-  - [Initial Meeting](Client-Meeting-Initial)  
-  - [Second Meeting](Client-Meeting-Second)  
-  - [Third Meeting](Third-Meeting-Second) 
-  - [Fourth Meeting](Client-Meeting-Fourth)  
-  - [Fifth Meeting](Client-Meeting-Fifth)   
-
-- **Team Meetings**  
-  - [Initial Meeting](Team-Meeting-Initial)  
-  - [Second Meeting](Team-Meeting-Second)  
-  - [Third Meeting](Team-Meeting-Third)  
-  - [Fourth Meeting](Team-Meeting-Fourth)  
-  - [Fifth Meeting](Team-Meeting-Fifth)  
-  - [Sixth Meeting](Team-Meeting-Sixth)
 
 ## Code Implementation Plan  
 - [Visualization Plan Part 1](Visualization-Plan-Part-1)
