@@ -174,7 +174,6 @@ View the full documentation index here:
 ✅ **Organised the team workspace** using GitHub Project boards and Slack, ensuring all tools are actively maintained for collaboration.  
 ✅ **Validated user stories and prototype with industry partner**, recorded a 3–5 min walkthrough, incorporated feedback, and documented key takeaways.  
 
-Sprint 2 Changelog
 
 ##  Sprint 2 Changelog
 
