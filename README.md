@@ -164,7 +164,7 @@ View the full documentation index here:
 
 ---
 
-#Sprint 1 Changelog
+# Sprint 1 Changelog
 
 ✅ **Defined the client (OPTIMA)**, documented project motivations, clarified realistic scope, and structured background in an error-free format.  
 ✅ **Gathered both functional and non-functional requirements**, drafted clear user stories grouped by epics, and aligned them with the project scope.
@@ -176,7 +176,7 @@ View the full documentation index here:
 
 Sprint 2 Changelog
 
-# 🛠 Sprint 2 Changelog
+#  Sprint 2 Changelog
 
 ✅ Deployed the preprocessing stage using Streamlit, allowing users to upload files and initiate instance space analysis.  
 ✅ Completed a structured product demonstration showcasing the preprocessing flow and partial dashboard functionality.  
