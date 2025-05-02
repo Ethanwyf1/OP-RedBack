@@ -1,58 +1,57 @@
+## 📄 Project Documentation
+- [Project Overview](Project-Overview.md)
+- [Project Scope](Project-Scope.md)
+  - [Overview](Project-Scope.md#overview)
+  - [Stakeholder Analysis](Project-Scope.md#stakeholder-benefits-analysis)
+  - [Project Motivations](Project-Scope.md#project-motivations)
+  - [Scope Boundaries](Project-Scope.md#scope-boundaries)
+    - [In Scope](Project-Scope.md#in-scope)
+    - [Out of Scope](Project-Scope.md#out-of-scope)
+  - [Success Criteria](Project-Scope.md#success-criteria)
+  - [Constraints](Project-Scope.md#constraints)
 
-## Project Documentation  
+## 🌀 Sprint Ceremony
+- [Sprint 1 Planning & Review & Retrospective](Sprint1%20Planning%20&%20Review%20&%20Retrospective.md)
+- [Sprint 2 Planning & Review & Retrospective](Sprint2%20Planning%20&%20Review%20&%20Retrospective.md)
+- [Sprint 3 Planning & Review & Retrospective](Sprint3%20Planning%20&%20Review%20&%20Retrospective.md)
 
-- [Project Overview](Project-Overview)  
-- [Project Scope](Project-Scope)  
-  - [Overview](Project-Scope#overview) 
-  - [Stakeholder-Analysis](Project-Scope#Stakeholder-Benefits-Analysis)
-  - [Project Motivations](Project-Scope#project-motivations)  
-  - [Scope Boundaries](Project-Scope#scope-boundaries)  
-  - [In Scope](Project-Scope#in-scope)  
-  - [Out of Scope](Project-Scope#out-of-scope)  
-  - [Success Criteria](Project-Scope#success-criteria)  
-  - [Constraints](Project-Scope#constraints)  
+## 📝 Feedback from Previous Sprints
+- [Sprint 1 Feedback](Sprint1%20Feedback.md)
+- [Sprint 2 Feedback](Sprint2.md)
 
-## Sprint Ceremony  
-- [Sprint1 Planning & Review & Retrospective](Sprint1-Planning-&-Review-&-Retrospective)  
-- [Sprint2 Planning & Review & Retrospective](Sprint2-Planning-&-Review-&-Retrospective)  
-- [Sprint3 Planning & Review & Retrospective](Sprint3-Planning-&-Review-&-Retrospective)  
+## 👥 Roles & Responsibilities
+- [Team Roles](Team-Roles.md)
 
-## Feedback from Previous Sprint  
-- [Sprint 1 Feedback](Sprint1-Feedback)  
-- [Sprint 2 Feedback](Sprint2-Feedback)  
+## 🧩 Requirement Analysis & User Story Mapping
+- [Task Board](Task-Board.md)
+- [Task Estimation Process](Task%20Estimation%20Process.md)
+- [Motivational Model](Motivational-Model.md)
+- [Personas](Personas.md)
+- [User Story Map](User-Story-Map.md)
+- [User Stories by Epic](User-Story-Epic.md)
+- [User Story Dependency Map](User-Story-Dependency-Map.md)
+- [Technology Stack](Technical-Stack.md)
 
-## Roles & Responsibilities  
-- [Team Roles](Team-Roles)  
+## 🧪 Prototype Validation
+- [Prototype Validation](Prototype-Validation.md)
 
-## Requirement Analysis & User Story Mapping  
-- [Task Board](Task-Board)  
-- [Task Estimation Process](Task-Estimation-Process)
-- [Motivational Model](Motivational-Model)  
-- [Personas](Personas)  
-- [User Story Map](User-Story-Map)  
-- [User Stories by Epic](User-Story-Epic)  
-- [User Story Dependency Map](User-Story-Dependency-Map)  
-- [Technology Stack](Technical-Stack)  
+## ✅ Quality Assurance & Code Standards
+- [Code Review Policy](Code%20Review%20Policy.md)
+- [CI CD and Code Quality Tools](CI%20CD%20and%20Code%20Quality%20Tools.md)
+- [Code Quality Tools & Best Practices](Code%20Quality%20Tools%20&%20Best%20Practices.md)
+- [Code Review Log](Code%20Review%20Log.md)
 
-## Prototype Validation  
-- [Prototype Validation](Prototype-Validation)  
-
-## Quality Assurance & Code Standards  
-- [Code Review Policy](Code-Review-Policy)  
-- [CI CD and Code Quality Tools](CI-CD-and-Code-Quality-Tools)  
-- [Code Quality Tools & Best Practices](Code-Quality-Tools-&-Best-Practices)  
-- [Code Review Log](Code-Review-Log)  
-
-## Risk Management  
-- [Risk Register](Risk-Register)  
-  - [General Development Risks](Risk-Register#general-development-risks)  
-  - [Ethical Considerations](Risk-Register#ethical-considerations)  
-  - [Cyber Security Considerations](Risk-Register#cyber-security-considerations)  
-- [Mitigation Strategies](Mitigation-Strategies)  
-  - [General Development Risks](Mitigation-Strategies#general-development-risks)  
-  - [Ethical Considerations](Mitigation-Strategies#ethical-considerations)  
-  - [Cyber Security Considerations](Mitigation-Strategies#cyber-security-considerations) 
+## 🚨 Risk Management
+- [Risk Register](Risk%20Register.md)
+  - [General Development Risks](Risk%20Register.md#general-development-risks)
+  - [Ethical Considerations](Risk%20Register.md#ethical-considerations)
+  - [Cyber Security Considerations](Risk%20Register.md#cyber-security-considerations)
+- [Mitigation Strategies](Mitigation%20Strategies.md)
+  - [General Development Risks](Mitigation%20Strategies.md#general-development-risks)
+  - [Ethical Considerations](Mitigation%20Strategies.md#ethical-considerations)
+  - [Cyber Security Considerations](Mitigation%20Strategies.md#cyber-security-considerations)
 
 
-## Code Implementation Plan  
-- [Visualization Plan Part 1](Visualization-Plan-Part-1)
+
+## 🧰 Code Implementation Plan
+- [Visualization Plan Part 1](Visualization%20Plan%20Part%201.md)
