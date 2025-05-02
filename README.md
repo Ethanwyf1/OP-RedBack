@@ -84,6 +84,7 @@ We follow a **GitFlow**-based branching strategy:
 | `feature/<name>`       | New features (branched off `develop`)   |
 | `release/<sprint>`     | Preparation for a sprint release        |
 | `hotfix/<issue>`       | Urgent fixes for `master` or `release`  |
+| `test/<name>`          | Temporary branches for integration testing or deployment verification |
 
 ---
 ### 2. Sprint Workflow
