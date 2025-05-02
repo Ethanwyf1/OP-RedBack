@@ -51,6 +51,24 @@
   - [Ethical Considerations](Mitigation%20Strategies.md#ethical-considerations)
   - [Cyber Security Considerations](Mitigation%20Strategies.md#cyber-security-considerations)
 
+    ## 🧾 Meeting Notes
+
+### 👤 Client Meetings
+- [Initial Meeting](Client-Meeting-Initial.md)
+- [Second Meeting](Client-Meeting-Second.md)
+- [Third Meeting](Client-Meeting-Third.md)
+- [Fourth Meeting](Client-Meeting-Fourth.md)
+- [Fifth Meeting](Client-Meeting-Fifth.md)
+
+### 👥 Team Meetings
+- [Initial Meeting](Team-Meeting-Initial.md)
+- [Second Meeting](Team-Meeting-Second.md)
+- [Third Meeting](Team-Meeting-Third.md)
+- [Fourth Meeting](Team-Meeting-Fourth.md)
+- [Fifth Meeting](Team-Meeting-Fifth.md)
+- [Sixth Meeting](Team-Meeting-Sixth.md)
+
+
 ##  Product Demonstration & Deployment  
 - [End of Sprint 2](Product-Demonstration%26Deployment.md)
 
