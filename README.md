@@ -177,22 +177,19 @@ View the full documentation index here:
 
 ##  Sprint 2 Changelog
 
-✅ Deployed the preprocessing stage using Streamlit, allowing users to upload files and initiate instance space analysis.  
-✅ Completed a structured product demonstration showcasing the preprocessing flow and partial dashboard functionality.  
-✅ Conducted structured code reviews using GitHub Actions and documented participants, reviewed files, key issues, and rationale in the GitHub Wiki.  
-✅ Explained how AI assisted during the review process and reflected on how AI-driven suggestions were evaluated, accepted, or dismissed with reasoning.  
-✅ Fully addressed Sprint 1 feedback across user stories, GitHub board, planning documentation, and validation deliverables.  
-✅ Integrated industry partner goals and background into project planning to align development priorities with stakeholder needs.  
-✅ Held Sprint 2 review and planning sessions, documented partner feedback, reflected on Sprint 1 outcomes, and outlined Sprint 3 scope.  
-✅ Maintained Agile task tracking using GitHub Projects, including well-defined, estimated, and assigned tasks actively moved across workflow lanes.  
-✅ Created and documented workflow dependency diagrams and linked them to team roles and backlog refinement.  
-✅ Documented handover processes and estimation logic in the GitHub Wiki, along with the task board and story maps.  
-✅ Defined and applied quality assurance standards for contributions and collaborative development, including secure coding practices.  
-✅ Assessed ethical risks (privacy, transparency, inclusivity, sustainability) and documented mitigation strategies in the GitHub Wiki.  
-✅ Integrated ethical guidelines into the product development cycle and updated them to reflect current project direction.  
-✅ Identified cybersecurity risks and documented secure coding practices, third-party package risks, and potential threat surfaces.  
-✅ Outlined planned authentication and access control strategies as part of future deployment considerations.  
-✅ Published all sprint ceremony minutes, including retrospective, review, planning, and technical walkthroughs, with summaries and team input.  
-✅ Updated GitHub Wiki with review logs, planning artifacts, architecture diagrams, and documentation links.  
-✅ Completed documentation of stakeholder impact, dependencies, roles, and quality checkpoints to prepare for Sprint 3 handover and continuity.
+✅ Implemented a Streamlit-based preprocessing interface with support for `metadata.csv` uploads, algorithm and feature dropdown filters, real-time visualizations, cache generation, and downloadable outputs.  
+✅ Updated the `README.md` to include setup instructions, usage guide, system workflow, and architectural overview.  
+✅ Delivered a structured product demonstration showcasing key preprocessing features and progress since Sprint 1.  
+✅ Conducted formal code reviews using GitHub Actions; documented participants, reviewed files, identified issues, and addressed feedback.  
+✅ Reflected on AI-assisted code reviews, explaining which suggestions were accepted or dismissed and why.  
+✅ Incorporated industry partner background and goals into project planning and documentation.  
+✅ Completed Sprint 2 review and planning sessions, documented partner feedback, and aligned Sprint 3 scope accordingly.  
+✅ Maintained and updated the GitHub Project board with clearly defined, estimated, and assigned tasks across all workflow lanes.  
+✅ Documented task dependencies and estimation processes in the GitHub Wiki.  
+✅ Outlined and enforced quality assurance practices, including secure coding standards and contribution guidelines.  
+✅ Assessed and documented ethical concerns (privacy, inclusivity, transparency, sustainability) and integrated them into the product development process.  
+✅ Identified cybersecurity risks, secure API practices, authentication considerations, and third-party package assessments; updated relevant documentation.  
+✅ Captured and published minutes for all sprint ceremonies, including planning, review, retrospective, and technical walkthroughs.  
+✅ Finalized all Sprint 2 documentation, including team roles, stakeholder impact, workflow dependencies, and handover preparation for Sprint 3.
+
 
