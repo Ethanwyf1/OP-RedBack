@@ -51,22 +51,23 @@
   - [Ethical Considerations](Mitigation%20Strategies.md#ethical-considerations)
   - [Cyber Security Considerations](Mitigation%20Strategies.md#cyber-security-considerations)
 
-    ## 🧾 Meeting Notes
+## 🧾 Meeting Notes
 
 ### 👤 Client Meetings
-- [Initial Meeting](Client-Meeting-Initial.md)
-- [Second Meeting](Client-Meeting-Second.md)
-- [Third Meeting](Client-Meeting-Third.md)
-- [Fourth Meeting](Client-Meeting-Fourth.md)
-- [Fifth Meeting](Client-Meeting-Fifth.md)
+- [Initial Meeting](Client%20Meeting%20Initial.md)
+- [Second Meeting](Client%20Meeting%20Second.md)
+- [Third Meeting](Client%20Meeting%20Third.md)
+- [Fourth Meeting](Client%20Meeting%20Fourth.md)
+- [Fifth Meeting](Client%20Meeting%20Fifth.md)
 
 ### 👥 Team Meetings
-- [Initial Meeting](Team-Meeting-Initial.md)
-- [Second Meeting](Team-Meeting-Second.md)
-- [Third Meeting](Team-Meeting-Third.md)
-- [Fourth Meeting](Team-Meeting-Fourth.md)
-- [Fifth Meeting](Team-Meeting-Fifth.md)
-- [Sixth Meeting](Team-Meeting-Sixth.md)
+- [Initial Meeting](Team%20Meeting%20Initial.md)
+- [Second Meeting](Team%20Meeting%20Second.md)
+- [Third Meeting](Team%20Meeting%20Third.md)
+- [Fourth Meeting](Team%20Meeting%20Fourth.md)
+- [Fifth Meeting](Team%20Meeting%20Fifth.md)
+- [Sixth Meeting](Team%20Meeting%20Sixth.md)
+
 
 
 ##  Product Demonstration & Deployment  
