@@ -163,6 +163,17 @@ View the full documentation index here:
 [Documentation Index](./docs/README.md)
 
 ---
+## 📦 Project Releases
+
+Sprint-based releases are published on GitHub to track deliverables and project progress.  
+You can find all release packages, changelogs, and demonstration links at:
+
+🔗 [GitHub Releases – OP-RedBack](https://github.com/FEIT-COMP90082-2025-SM1/OP-RedBack/releases)
+
+Latest release:  
+🎯 [Sprint 2](https://github.com/FEIT-COMP90082-2025-SM1/OP-RedBack/releases/tag/COMP90082_2025_SM1_OP-RedBack_RL_SPRINT2)
+
+---
 
 ## Sprint 1 Changelog
 
