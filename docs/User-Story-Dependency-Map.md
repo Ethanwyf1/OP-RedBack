@@ -1,4 +1,12 @@
-## 🔗 **User Story Dependency Mapping**
+# 🔗 **User Story Dependency Mapping**
+
+## 📚 Contents
+- [User Story Dependency Table](#user-story-Dependency-table)
+- [User Story Dependency Diagram](#user-story-dependency-diagram)
+
+---
+
+## 📋 **User Story Table**
 
 | User Story | Depends On |
 |------------|------------|
@@ -24,5 +32,14 @@
 | PERF-1     | PV-4, AA-1, FA-1 |
 | EF-1       | IA-1, UB-1 |
 | AA-ADV-1   | All core functionalities completed |
+
+---
+
+## 📈 **User Story Dependency Diagram**
+
+
+![Image 2025-04-28 at 17 24 46](https://github.com/user-attachments/assets/4fa3ed7c-783d-4930-a8d1-06ec9f56bc72)
+
+
 
 ---
