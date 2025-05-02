@@ -155,7 +155,7 @@ We follow a **GitFlow**-based branching strategy:
 
 ---
 
-##  Sprint 1 Deliverables
+##  Sprint 1&2 Deliverables
 
 All wiki pages have been exported to `docs/` as Markdown files.
 
