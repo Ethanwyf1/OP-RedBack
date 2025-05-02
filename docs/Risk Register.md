@@ -23,7 +23,7 @@ This document outlines the identified project risks, categorized under **General
 
 ---
 
-## 🌐 Ethical Considerations
+## 🌐 Ethical Considerations (Draft)
 
 | ID | Risk Statement | P (Probability) | I (Impact) | P × I (Risk Score) | Risk Justification |
 |----|----------------|------------------|------------|---------------------|---------------------|
@@ -37,7 +37,7 @@ This document outlines the identified project risks, categorized under **General
 
 ---
 
-## 🔐 Cyber Security Considerations
+## 🔐 Cyber Security Considerations (Draft)
 
 | ID | Risk Statement | P (Probability) | I (Impact) | P × I (Risk Score) | Risk Justification |
 |----|----------------|------------------|------------|---------------------|---------------------|
