@@ -110,7 +110,7 @@ def load_preprocessing_output():
         missing_attrs = [attr for attr in essential_attrs if not hasattr(preprocessing_output, attr)]
         
         if missing_attrs:
-            st.error("Missing essential preprocessing output attributes")
+            st.error(f"Missing essential preprocessing output attributes: {', '.join(missing_attrs)}")
             return None
         
         # Log successful loading
@@ -121,6 +121,104 @@ def load_preprocessing_output():
     except Exception as e:
         st.error(f"Error loading preprocessing output: {str(e)}")
         return None
+
+# Extract algorithm and feature names from preprocessing output or zip file
+def extract_names_from_preprocessing(preprocessing_output):
+    """
+    Extract algorithm and feature names directly from the preprocessing output.
+    Tries multiple possible attribute names where these might be stored.
+    """
+    algorithm_names = []
+    feature_names = []
+    
+    try:
+        # First check if the names are directly available in the preprocessing_output
+        if hasattr(preprocessing_output, 'algorithm_names') and preprocessing_output.algorithm_names is not None:
+            algorithm_names = preprocessing_output.algorithm_names
+        elif hasattr(preprocessing_output, 'algo_names') and preprocessing_output.algo_names is not None:
+            algorithm_names = preprocessing_output.algo_names
+        
+        if hasattr(preprocessing_output, 'feature_names') and preprocessing_output.feature_names is not None:
+            feature_names = preprocessing_output.feature_names
+        elif hasattr(preprocessing_output, 'feat_names') and preprocessing_output.feat_names is not None:
+            feature_names = preprocessing_output.feat_names
+        
+        # If we still don't have names, check for DataFrame headers if available
+        if not algorithm_names and hasattr(preprocessing_output, 'y_df') and preprocessing_output.y_df is not None:
+            # Extract algorithm names from column headers that start with 'algo_'
+            algo_cols = [col for col in preprocessing_output.y_df.columns if col.startswith('algo_')]
+            if algo_cols:
+                algorithm_names = [col.replace('algo_', '') for col in algo_cols]
+        
+        if not feature_names and hasattr(preprocessing_output, 'x_df') and preprocessing_output.x_df is not None:
+            # Extract feature names from column headers that start with 'feature_'
+            feat_cols = [col for col in preprocessing_output.x_df.columns if col.startswith('feature_')]
+            if feat_cols:
+                feature_names = [col.replace('feature_', '') for col in feat_cols]
+        
+        # If we still don't have names, look for dataframes with correct column prefixes
+        if hasattr(preprocessing_output, 'dataframes') and preprocessing_output.dataframes is not None:
+            for df_name, df in preprocessing_output.dataframes.items():
+                # Look for algorithm columns (algo_*)
+                if not algorithm_names:
+                    algo_cols = [col for col in df.columns if col.startswith('algo_')]
+                    if algo_cols:
+                        algorithm_names = [col.replace('algo_', '') for col in algo_cols]
+                
+                # Look for feature columns (feature_*)
+                if not feature_names:
+                    feat_cols = [col for col in df.columns if col.startswith('feature_')]
+                    if feat_cols:
+                        feature_names = [col.replace('feature_', '') for col in feat_cols]
+        
+        # If we still don't have names, check if there are any raw CSV filenames stored
+        if (not algorithm_names or not feature_names) and hasattr(preprocessing_output, 'input_files'):
+            # Check if we have a performance.csv or features.csv filename
+            for filename in preprocessing_output.input_files:
+                if 'performance' in filename.lower() and os.path.exists(filename):
+                    try:
+                        perf_df = pd.read_csv(filename)
+                        algo_cols = [col for col in perf_df.columns if col.startswith('algo_')]
+                        if algo_cols:
+                            algorithm_names = [col.replace('algo_', '') for col in algo_cols]
+                    except:
+                        pass
+                
+                if 'feature' in filename.lower() and os.path.exists(filename):
+                    try:
+                        feat_df = pd.read_csv(filename)
+                        feat_cols = [col for col in feat_df.columns if col.startswith('feature_')]
+                        if feat_cols:
+                            feature_names = [col.replace('feature_', '') for col in feat_cols]
+                    except:
+                        pass
+        
+        # If we still don't have names, use the default column names for the known CSVs from user input
+        if not algorithm_names:
+            known_algo_names = ['RandomGreedy', 'DSATUR', 'Bktr', 'HillClimber', 'HEA', 
+                               'PartialCol', 'TabuCol', 'AntCol']
+            
+            # Check if the shape matches the known list
+            if preprocessing_output.y.shape[1] == len(known_algo_names):
+                algorithm_names = known_algo_names
+        
+        if not feature_names:
+            known_feature_names = ['Density', 'AlgConnectivity', 'Energy']
+            # Check if the shape matches the known list
+            if preprocessing_output.x.shape[1] == len(known_feature_names):
+                feature_names = known_feature_names
+    
+    except Exception as e:
+        st.warning(f"Error extracting names from preprocessing output: {str(e)}")
+    
+    # If we still don't have names, use generic names
+    if not algorithm_names:
+        algorithm_names = [f"Algorithm {i+1}" for i in range(preprocessing_output.y.shape[1])]
+    
+    if not feature_names:
+        feature_names = [f"Feature {i+1}" for i in range(preprocessing_output.x.shape[1])]
+    
+    return algorithm_names, feature_names
 
 # Preliminary Stage Processing
 def run_prelim(preprocessing_output, prelim_options, selvars_options):
@@ -174,6 +272,7 @@ def run_prelim(preprocessing_output, prelim_options, selvars_options):
     
     except Exception as e:
         st.error(f"Error during Prelim execution: {str(e)}")
+        st.error(traceback.format_exc())
         return None
 
 # Visualization Functions
@@ -181,6 +280,9 @@ def visualize_binary_performance(prelim_output, selected_algorithms):
     """
     Visualize binary performance classification for selected algorithms
     """
+    # Get algorithm names from session state
+    algorithm_names = st.session_state.algorithm_names
+    
     # Create summary statistics first
     summary_data = []
     for i, algo_idx in enumerate(selected_algorithms):
@@ -189,7 +291,7 @@ def visualize_binary_performance(prelim_output, selected_algorithms):
         good_percentage = (good_count / total_count) * 100
         
         summary_data.append({
-            "Algorithm": f"Algorithm {algo_idx+1}",
+            "Algorithm": algorithm_names[algo_idx],
             "Good Performance Count": good_count,
             "Good Performance (%)": f"{good_percentage:.2f}%",
             "Total Instances": total_count
@@ -203,7 +305,7 @@ def visualize_binary_performance(prelim_output, selected_algorithms):
     plt.figure(figsize=(10, 6))
     
     # Extract percentages for bar chart
-    algorithms = [f"Algorithm {i+1}" for i in selected_algorithms]
+    algorithms = [algorithm_names[i] for i in selected_algorithms]
     percentages = [np.sum(prelim_output.y_bin[:, i]) / prelim_output.y_bin.shape[0] * 100 for i in selected_algorithms]
     
     # Create bar chart
@@ -219,6 +321,7 @@ def visualize_binary_performance(prelim_output, selected_algorithms):
     plt.ylabel("Good Performance (%)")
     plt.ylim(0, 100)  # Set y-axis range from 0 to 100%
     plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.xticks(rotation=45, ha='right')  # Rotate algorithm names for better readability
     plt.tight_layout()
     
     st.pyplot(plt.gcf())
@@ -230,7 +333,7 @@ def visualize_binary_performance(prelim_output, selected_algorithms):
     algorithm_counts = np.bincount(prelim_output.p.astype(int), minlength=prelim_output.y.shape[1]+1)[1:]
     
     plt.figure(figsize=(10, 6))
-    algorithms = [f"Algorithm {i+1}" for i in range(len(algorithm_counts))]
+    algorithms = [algorithm_names[i] for i in range(len(algorithm_counts))]
     
     # Plot best algorithm distribution
     bars = plt.bar(algorithms, algorithm_counts, color='lightgreen')
@@ -244,6 +347,7 @@ def visualize_binary_performance(prelim_output, selected_algorithms):
     plt.xlabel("Algorithms")
     plt.ylabel("Count")
     plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.xticks(rotation=45, ha='right')  # Rotate algorithm names for better readability
     plt.tight_layout()
     
     st.pyplot(plt.gcf())
@@ -252,13 +356,16 @@ def visualize_performance_distribution(prelim_output, selected_algorithms):
     """
     Visualize the distribution of both raw and processed performance values
     """
+    # Get algorithm names from session state
+    algorithm_names = st.session_state.algorithm_names
+    
     plt.figure(figsize=(15, 8))
     
     # Raw performance distribution
     plt.subplot(121)
     for i in selected_algorithms:
         raw_perf = prelim_output.y_raw[:, i]
-        sns.kdeplot(raw_perf, label=f"Algorithm {i+1}")
+        sns.kdeplot(raw_perf, label=algorithm_names[i])
     
     plt.title("Raw Performance Distribution")
     plt.xlabel("Raw Performance Value")
@@ -269,7 +376,7 @@ def visualize_performance_distribution(prelim_output, selected_algorithms):
     plt.subplot(122)
     for i in selected_algorithms:
         proc_perf = prelim_output.y[:, i]
-        sns.kdeplot(proc_perf, label=f"Algorithm {i+1}")
+        sns.kdeplot(proc_perf, label=algorithm_names[i])
     
     plt.title("Processed Performance Distribution")
     plt.xlabel("Processed Performance Value")
@@ -285,7 +392,7 @@ def visualize_performance_distribution(prelim_output, selected_algorithms):
     algo_data = []
     for i in selected_algorithms:
         algo_data.append({
-            "Algorithm": f"Algorithm {i+1}",
+            "Algorithm": algorithm_names[i],
             "Box-Cox λ": f"{prelim_output.lambda_y[i]:.4f}",
             "Mean (μ)": f"{prelim_output.mu_y[i]:.4f}",
             "Std Dev (σ)": f"{prelim_output.sigma_y[i]:.4f}"
@@ -310,6 +417,9 @@ def visualize_feature_transformations(prelim_output, selected_features):
     """
     Visualize the effect of transformations on selected features
     """
+    # Get feature names from session state
+    feature_names = st.session_state.feature_names
+    
     plt.figure(figsize=(15, 8))
     
     # Calculate number of rows needed for subplots
@@ -321,14 +431,14 @@ def visualize_feature_transformations(prelim_output, selected_features):
         plt.subplot(n_features, n_cols, 2*i+1)
         raw_feat = prelim_output.x_raw[:, feat_idx]
         sns.histplot(raw_feat, kde=True)
-        plt.title(f"Raw Feature {feat_idx+1}")
+        plt.title(f"Raw {feature_names[feat_idx]}")
         plt.xlabel("Value")
         
         # Transformed feature distribution
         plt.subplot(n_features, n_cols, 2*i+2)
         trans_feat = prelim_output.x[:, feat_idx]
         sns.histplot(trans_feat, kde=True)
-        plt.title(f"Transformed Feature {feat_idx+1}")
+        plt.title(f"Transformed {feature_names[feat_idx]}")
         plt.xlabel("Value")
     
     plt.tight_layout()
@@ -341,7 +451,7 @@ def visualize_feature_transformations(prelim_output, selected_features):
     transform_data = []
     for feat_idx in selected_features:
         transform_data.append({
-            "Feature": f"Feature {feat_idx+1}",
+            "Feature": feature_names[feat_idx],
             "Box-Cox λ": f"{prelim_output.lambda_x[feat_idx]:.4f}",
             "Mean (μ)": f"{prelim_output.mu_x[feat_idx]:.4f}",
             "Std Dev (σ)": f"{prelim_output.sigma_x[feat_idx]:.4f}",
@@ -363,6 +473,9 @@ def visualize_feature_transformations(prelim_output, selected_features):
     x = np.arange(len(selected_features))
     width = 0.2
     
+    # Create labels for the x-axis using feature names
+    x_labels = [feature_names[i] for i in selected_features]
+    
     # Plot median values with error bars for IQ range
     plt.bar(x - width*1.5, [prelim_output.med_val[i] for i in selected_features], 
             width, label='Median', color='blue', alpha=0.7)
@@ -382,7 +495,7 @@ def visualize_feature_transformations(prelim_output, selected_features):
     plt.xlabel('Features')
     plt.ylabel('Value')
     plt.title('Feature Bounds Summary')
-    plt.xticks(x, [f"Feature {i+1}" for i in selected_features])
+    plt.xticks(x, x_labels, rotation=45, ha='right')  # Use feature names with rotation
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -393,6 +506,10 @@ def visualize_feature_importance(prelim_output, selected_features):
     """
     Visualize feature importance based on algorithm performance correlation
     """
+    # Get feature names and algorithm names from session state
+    feature_names = st.session_state.feature_names
+    algorithm_names = st.session_state.algorithm_names
+    
     # Calculate correlation between features and algorithm performance
     feature_importance = []
     
@@ -410,7 +527,7 @@ def visualize_feature_importance(prelim_output, selected_features):
         avg_abs_corr = np.mean(np.abs(correlations))
         
         feature_importance.append({
-            "Feature": f"Feature {feat_idx+1}",
+            "Feature": feature_names[feat_idx],
             "Correlations": correlations,
             "Average Abs Correlation": avg_abs_corr,
             "Num Good Algos": prelim_output.num_good_algos[feat_idx],
@@ -464,17 +581,52 @@ def visualize_feature_importance(prelim_output, selected_features):
     
     # Extract beta selection data
     beta_selection = [1 if prelim_output.beta[i] else 0 for i in selected_features]
-    feature_names = [f"Feature {i+1}" for i in selected_features]
+    feature_names_selected = [feature_names[i] for i in selected_features]
     
     # Create bar chart with color based on selection
     colors = ['green' if b else 'red' for b in beta_selection]
-    plt.bar(feature_names, beta_selection, color=colors)
+    plt.bar(feature_names_selected, beta_selection, color=colors)
     
     plt.title("Feature Selection by Beta Threshold")
     plt.xlabel("Features")
     plt.ylabel("Selected (1) / Not Selected (0)")
     plt.yticks([0, 1])
+    plt.xticks(rotation=45, ha='right')  # Rotate feature names
     plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    
+    st.pyplot(plt.gcf())
+    
+    # Create correlation heatmap
+    st.subheader("Feature-Algorithm Correlation Heatmap")
+    
+    plt.figure(figsize=(12, 8))
+    
+    # Create correlation matrix
+    corr_matrix = np.zeros((len(selected_features), len(algorithm_names)))
+    
+    for i, feat_idx in enumerate(selected_features):
+        feature_values = prelim_output.x[:, feat_idx]
+        
+        for j in range(prelim_output.y_bin.shape[1]):
+            binary_perf = prelim_output.y_bin[:, j].astype(float)
+            corr = np.corrcoef(feature_values, binary_perf)[0, 1]
+            corr_matrix[i, j] = corr
+    
+    # Create heatmap
+    sns.heatmap(corr_matrix, 
+                annot=True, 
+                cmap='coolwarm', 
+                vmin=-1, 
+                vmax=1,
+                xticklabels=algorithm_names,
+                yticklabels=[feature_names[i] for i in selected_features],
+                fmt=".2f")
+    
+    plt.title("Feature-Algorithm Performance Correlation")
+    plt.ylabel("Features")
+    plt.xlabel("Algorithms")
+    plt.xticks(rotation=45, ha='right')  # Rotate algorithm names
     plt.tight_layout()
     
     st.pyplot(plt.gcf())
@@ -488,7 +640,7 @@ def visualize_feature_importance(prelim_output, selected_features):
     sorted_indices = sorted(selected_features, 
                             key=lambda x: prelim_output.num_good_algos[x], 
                             reverse=True)
-    sorted_feature_names = [f"Feature {i+1}" for i in sorted_indices]
+    sorted_feature_names = [feature_names[i] for i in sorted_indices]
     good_algo_counts = [prelim_output.num_good_algos[i] for i in sorted_indices]
     
     # Create bar chart
@@ -502,6 +654,7 @@ def visualize_feature_importance(prelim_output, selected_features):
     plt.title("Number of Good Algorithms per Feature")
     plt.xlabel("Features")
     plt.ylabel("Number of Good Algorithms")
+    plt.xticks(rotation=45, ha='right')  # Rotate feature names
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
     
@@ -510,6 +663,7 @@ def visualize_feature_importance(prelim_output, selected_features):
 def create_prelim_output_zip(cached_output):
     """
     Create a single consolidated CSV file for transfer to the next stage.
+    Preserves algorithm and feature names in the export.
     """
     # Create temporary directory
     tmp_dir = "temp_files"
@@ -524,10 +678,12 @@ def create_prelim_output_zip(cached_output):
         "min_y": [float(cached_output.min_y) if cached_output.min_y is not None else 0.0]
     })
     
-    # Add matrices as flattened arrays with sizes
-    # For each matrix, we'll add:
-    # 1. A column for the flattened array (as a string representation)
-    # 2. A column for the shape (as a string representation)
+    # Add algorithm and feature names from session state
+    if 'algorithm_names' in st.session_state:
+        consolidated_df["algorithm_names"] = [json.dumps(st.session_state.algorithm_names)]
+    
+    if 'feature_names' in st.session_state:
+        consolidated_df["feature_names"] = [json.dumps(st.session_state.feature_names)]
     
     # Helper function to add matrix to DataFrame
     def add_matrix_to_df(df, matrix, name):
@@ -584,8 +740,11 @@ def create_prelim_output_zip(cached_output):
         consolidated_df["mu_y"] = [str(cached_output.mu_y.tolist())]
     
     # Add instance labels and source series if available
-    if cached_output.instlabels is not None:
+    if hasattr(cached_output, 'instlabels') and cached_output.instlabels is not None:
         consolidated_df["instlabels"] = [str(cached_output.instlabels.tolist())]
+    elif hasattr(cached_output, 'inst_labels') and cached_output.inst_labels is not None:
+        consolidated_df["instlabels"] = [str(cached_output.inst_labels.tolist())]
+    
     if cached_output.s is not None:
         consolidated_df["s"] = [str(cached_output.s.tolist())]
     
@@ -622,11 +781,31 @@ def show():
     st.header("Preliminary Stage: Algorithm Performance Analysis")
     
     # Load preprocessing output
-    preprocessing_output = load_from_cache("preprocessing_output.pkl")
+    preprocessing_output = load_preprocessing_output()
     
     if preprocessing_output is None:
         st.error("Please run the Preprocessing stage first.")
         return
+    
+    # Extract algorithm and feature names
+    algorithm_names, feature_names = extract_names_from_preprocessing(preprocessing_output)
+    
+    # Store names in session state for later use across all functions
+    st.session_state.algorithm_names = algorithm_names
+    st.session_state.feature_names = feature_names
+    
+    # Display detected names for verification
+    with st.expander("Detected Algorithm and Feature Names", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Algorithm Names")
+            for i, name in enumerate(algorithm_names):
+                st.write(f"{i+1}. {name}")
+        
+        with col2:
+            st.subheader("Feature Names")
+            for i, name in enumerate(feature_names):
+                st.write(f"{i+1}. {name}")
     
     # Configuration in central area instead of side column
     st.subheader("Preliminary Stage Configuration")
@@ -682,52 +861,53 @@ def show():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("Run Preliminary Analysis", type="primary", use_container_width=True):
-            # Create default values for advanced options
-            small_scale = 0.5
-            min_distance = 0.5
-            selvars_type = "manual"
-            
-            # Create options objects
-            prelim_options = PrelimOptions(
-                max_perf=max_perf,
-                abs_perf=abs_perf,
-                epsilon=epsilon,
-                beta_threshold=beta_threshold,
-                bound=bound,
-                norm=norm
-            )
-            
-            selvars_options = SelvarsOptions(
-                feats=None,
-                algos=None,
-                small_scale_flag=small_scale_flag,
-                small_scale=small_scale,
-                file_idx_flag=False,
-                file_idx=None,
-                selvars_type=selvars_type,
-                min_distance=min_distance,
-                density_flag=density_flag
-            )
-            
-            # Run preliminary stage
-            prelim_output = run_prelim(
-                preprocessing_output, 
-                prelim_options,
-                selvars_options
-            )
-            
-            # Store the result in session state for visualization
-            if prelim_output is not None:
-                st.session_state.prelim_output = prelim_output
-                st.session_state.prelim_options = prelim_options
-                st.session_state.selvars_options = selvars_options
+            with st.spinner("Running preliminary analysis..."):
+                # Create default values for advanced options
+                small_scale = 0.5
+                min_distance = 0.5
+                selvars_type = "manual"
                 
-                # Save the output directly for the next stage
-                # Use our custom saving function instead of save_to_cache
-                if manually_save_output(prelim_output):
-                    st.success("Preliminary stage completed. Data saved for the next stage.")
-                else:
-                    st.warning("Could not save data for next stage. The analysis results are still available for viewing.")
+                # Create options objects
+                prelim_options = PrelimOptions(
+                    max_perf=max_perf,
+                    abs_perf=abs_perf,
+                    epsilon=epsilon,
+                    beta_threshold=beta_threshold,
+                    bound=bound,
+                    norm=norm
+                )
+                
+                selvars_options = SelvarsOptions(
+                    feats=None,
+                    algos=None,
+                    small_scale_flag=small_scale_flag,
+                    small_scale=small_scale,
+                    file_idx_flag=False,
+                    file_idx=None,
+                    selvars_type=selvars_type,
+                    min_distance=min_distance,
+                    density_flag=density_flag
+                )
+                
+                # Run preliminary stage
+                prelim_output = run_prelim(
+                    preprocessing_output, 
+                    prelim_options,
+                    selvars_options
+                )
+                
+                # Store the result in session state for visualization
+                if prelim_output is not None:
+                    st.session_state.prelim_output = prelim_output
+                    st.session_state.prelim_options = prelim_options
+                    st.session_state.selvars_options = selvars_options
+                    
+                    # Save the output directly for the next stage
+                    # Use our custom saving function instead of save_to_cache
+                    if manually_save_output(prelim_output):
+                        st.success("Preliminary stage completed. Data saved for the next stage.")
+                    else:
+                        st.warning("Could not save data for next stage. The analysis results are still available for viewing.")
     
     # Visualization section
     if 'prelim_output' in st.session_state:
@@ -767,13 +947,15 @@ def show():
         ])
         
         with tab1:
-            # Algorithm selection
+            # Algorithm selection with names
             num_algorithms = prelim_output.y.shape[1]
+            algorithm_options = list(range(num_algorithms))
+            
             selected_algorithms = st.multiselect(
                 "Select Algorithms to Visualize", 
-                options=list(range(num_algorithms)), 
-                default=list(range(min(5, num_algorithms))),
-                format_func=lambda x: f"Algorithm {x+1}"
+                options=algorithm_options, 
+                default=algorithm_options[:min(5, num_algorithms)],
+                format_func=lambda x: st.session_state.algorithm_names[x]
             )
             
             if selected_algorithms:
@@ -782,13 +964,15 @@ def show():
                 st.info("Please select at least one algorithm to visualize")
         
         with tab2:
-            # Algorithm selection
+            # Algorithm selection with names
             num_algorithms = prelim_output.y.shape[1]
+            algorithm_options = list(range(num_algorithms))
+            
             selected_algorithms = st.multiselect(
                 "Select Algorithms to Visualize", 
-                options=list(range(num_algorithms)), 
-                default=list(range(min(3, num_algorithms))),
-                format_func=lambda x: f"Algorithm {x+1}",
+                options=algorithm_options, 
+                default=algorithm_options[:min(3, num_algorithms)],
+                format_func=lambda x: st.session_state.algorithm_names[x],
                 key="perf_dist_algos"
             )
             
@@ -798,13 +982,15 @@ def show():
                 st.info("Please select at least one algorithm to visualize")
         
         with tab3:
-            # Feature selection
+            # Feature selection with names
             num_features = prelim_output.x.shape[1]
+            feature_options = list(range(num_features))
+            
             selected_features = st.multiselect(
                 "Select Features to Visualize", 
-                options=list(range(num_features)), 
-                default=list(range(min(3, num_features))),
-                format_func=lambda x: f"Feature {x+1}"
+                options=feature_options, 
+                default=feature_options[:min(3, num_features)],
+                format_func=lambda x: st.session_state.feature_names[x]
             )
             
             if selected_features:
@@ -813,13 +999,15 @@ def show():
                 st.info("Please select at least one feature to visualize")
         
         with tab4:
-            # Feature selection
+            # Feature selection with names
             num_features = prelim_output.x.shape[1]
+            feature_options = list(range(num_features))
+            
             selected_features = st.multiselect(
                 "Select Features to Visualize", 
-                options=list(range(num_features)), 
-                default=list(range(min(5, num_features))),
-                format_func=lambda x: f"Feature {x+1}",
+                options=feature_options, 
+                default=feature_options[:min(5, num_features)],
+                format_func=lambda x: st.session_state.feature_names[x],
                 key="feat_imp_features"
             )
             
