@@ -14,6 +14,9 @@ import traceback
 import io
 
 def display_sifted_output(sifted_out, preprocessing_output):
+    if sifted_out.rho is None:
+        st.warning("⚠️ Not enough features selected. The SIFTED stage skipped correlation analysis.")
+        return
 
     """
     Visualization：
@@ -296,7 +299,7 @@ def show():
                 small_scale=0.1,
                 file_idx_flag=False,
                 file_idx="",
-                selvars_type="manual",
+                selvars_type="auto",
                 min_distance=0.0,
                 density_flag=False,
             )
@@ -321,6 +324,8 @@ def show():
                 data_dense=prelim_output.data_dense,
                 parallel_options=parallel_opts,
             )
+            
+            st.info(f"📐 Prelim feature count: {prelim_output.x.shape[1]} features available before SIFTED.")
 
             sifted_output = SiftedStage._run(sifted_in)
 
