@@ -1,49 +1,52 @@
+# utils/run_pilot.py
+
 from instancespace.stages.pilot import PilotStage, PilotInput, PilotOutput
 from instancespace.data.options import PilotOptions
-from utils.cache_utils import load_from_cache
-from typing import Optional
+import numpy as np
+from numpy.typing import NDArray
+from typing import List
 
 
-def run_pilot_from_preprocessed(use_algo_index: int = 0, analytic: bool = True) -> Optional[PilotOutput]:
-    """from instancespace.stages.pilot import PilotOutput
-
-def run_pilot_from_preprocessed(...) -> Optional[PilotOutput]:
-    Run the PILOT stage using cached preprocessing output.
+def run_pilot(
+    x: NDArray[np.double],
+    y: NDArray[np.double],
+    feat_labels: List[str],
+    analytic: bool = True,
+    n_tries: int = 10
+) -> PilotOutput:
+    """
+    Run the PILOT stage with the given data and configuration.
 
     Parameters
     ----------
-    use_algo_index : int
-        Index of algorithm column to use as projection target.
+    x : NDArray[np.double]
+        Feature matrix (instances x features)
+    y : NDArray[np.double]
+        Performance vector (instances x 1) for a selected algorithm
+    feat_labels : list[str]
+        Feature names
     analytic : bool
-        Whether to use analytic (PCA-like) projection or numerical optimization.
+        Whether to use analytic projection (PCA-like)
+    n_tries : int
+        Number of BFGS optimization attempts (used only in numerical mode)
 
     Returns
     -------
     PilotOutput
-        The output of the PILOT stage.
+        The result of the PILOT stage
     """
-    # Step 1: Load preprocessed data from cache
-    output = load_from_cache("preprocessing_output.pkl")
-
-    # Step 2: Extract features (x), selected algorithm performance (y), and feature labels
-    x = output.x
-    y = output.y_raw[:, use_algo_index].reshape(-1, 1)
-    feat_labels = output.feat_labels
-
-    # Step 3: Set pilot options
-    pilot_options = PilotOptions(
+    options = PilotOptions(
         x0=None,
         alpha=None,
         analytic=analytic,
-        n_tries=10
+        n_tries=n_tries
     )
 
-    # Step 4: Build and run PILOT
     pilot_input = PilotInput(
         x=x,
         y=y,
         feat_labels=feat_labels,
-        pilot_options=pilot_options
+        pilot_options=options
     )
 
     return PilotStage._run(pilot_input)
