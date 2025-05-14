@@ -112,19 +112,39 @@ def display_sifted_output(sifted_out, preprocessing_output):
     else:
         st.info("No silhouette scores provided.")
 
-    # —— 4. PCA 2D projection —— 
-    st.subheader("🔬 Instances in 2D (PCA Projection)")
-    if sifted_out.x.shape[1] >= 2:
-        pca = PCA(n_components=2, random_state=0)
-        proj = pca.fit_transform(sifted_out.x)
-        fig2, ax2 = plt.subplots(figsize=(5,5))
-        ax2.scatter(proj[:,0], proj[:,1], s=15, alpha=0.6)
-        ax2.set_xlabel("PC 1")
-        ax2.set_ylabel("PC 2")
-        ax2.set_title("PCA of Sifted Features")
-        st.pyplot(fig2)
+
+    if sifted_out.clust is not None:
+
+        clust = sifted_out.clust
+        n_clusters = clust.shape[1]
+        col_names = [f"cluster{i+1}" for i in range(n_clusters)]
+
+        df = pd.DataFrame(clust, columns=col_names)
+        
+        st.subheader("Cluster Boolean Table")
+        st.dataframe(df)
+
+        selected_features = sifted_out.feat_labels
+        sel_df = pd.DataFrame(selected_features, columns=["Selected Features"])
+        st.subheader("Selected Features")
+        st.dataframe(sel_df)
+
     else:
-        st.info("Not enough features for 2D PCA.")
+        st.info("No Cluster Info Available.")
+
+    # # —— 4. PCA 2D projection —— 
+    # st.subheader("🔬 Instances in 2D (PCA Projection)")
+    # if sifted_out.x.shape[1] >= 2:
+    #     pca = PCA(n_components=2, random_state=0)
+    #     proj = pca.fit_transform(sifted_out.x)
+    #     fig2, ax2 = plt.subplots(figsize=(5,5))
+    #     ax2.scatter(proj[:,0], proj[:,1], s=15, alpha=0.6)
+    #     ax2.set_xlabel("PC 1")
+    #     ax2.set_ylabel("PC 2")
+    #     ax2.set_title("PCA of Sifted Features")
+    #     st.pyplot(fig2)
+    # else:
+    #     st.info("Not enough features for 2D PCA.")
 
 def show():
     st.header("🧹 SIFTED Stage")
@@ -325,7 +345,6 @@ def show():
             sifted_output = SiftedStage._run(sifted_in)
 
             if sifted_output is not None:
-                print(sifted_output)
 
                 # Save to session state and cache
                 st.session_state["sifted_output"] = sifted_output
@@ -342,12 +361,14 @@ def show():
 
     if st.session_state.get("ran_sifted", False) or cache_exists("prelim_output.pkl"):
         try:
+            
             if "sifted_output" not in st.session_state and cache_exists("sifted_output.pkl"):
                 st.session_state["sifted_output"] = load_from_cache("sifted_output.pkl")
                 st.session_state["ran_sifted"] = True
             
             sifted_output = st.session_state["sifted_output"]
             display_sifted_output(sifted_output, preprocessing_output)
+
             st.subheader("🗑️ Cache Management")
             if st.button("❌ Delete Sifted Cache"):
                 success = delete_cache("sifted_output.pkl")
