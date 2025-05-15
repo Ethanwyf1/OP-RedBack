@@ -1,7 +1,9 @@
 import streamlit as st
-from utils.cache_utils import load_from_cache, cache_exists
 
-def show():  
+from utils.cache_utils import cache_exists, load_from_cache
+
+
+def show():
     st.title("🔎 Verify Preprocessing Cache")
 
     if cache_exists("preprocessing_output.pkl"):
@@ -25,4 +27,3 @@ def show():
 
     else:
         st.error("❌ preprocessing_output.pkl not found. Please run Preprocessing first.")
-

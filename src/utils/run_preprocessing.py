@@ -1,10 +1,14 @@
-from instancespace.stages.preprocessing import PreprocessingStage
+from typing import IO, Union
+
 from instancespace.data.options import SelvarsOptions
+from instancespace.stages.preprocessing import PreprocessingStage
+
 from utils.data_loader import load_metadata_and_create_input
-from typing import Union, IO
 
 
-def run_preprocessing(metadata_source: Union[str, IO], feats: list[str] = None, algos: list[str] = None):
+def run_preprocessing(
+    metadata_source: Union[str, IO], feats: list[str] = None, algos: list[str] = None
+):
     """
     Run the preprocessing stage of ISA.
 
@@ -31,7 +35,7 @@ def run_preprocessing(metadata_source: Union[str, IO], feats: list[str] = None, 
         file_idx=None,
         selvars_type="manual",
         min_distance=0.0,
-        density_flag=False
+        density_flag=False,
     )
 
     input_data = load_metadata_and_create_input(metadata_source, selvars)
