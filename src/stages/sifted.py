@@ -26,7 +26,7 @@ def display_sifted_output(sifted_out, preprocessing_output):
       1) Feature Importance
       2) Correlation Heatmap（feature vs algorithm)
       3) Silhouette curve
-      4) PCA 2D projection
+      4) Clust tale
     """
 
     rho_full = np.abs(sifted_out.rho)  # shape = (all_feats, n_algos)
@@ -71,6 +71,10 @@ def display_sifted_output(sifted_out, preprocessing_output):
 
     # —— 2. Correlation Heatmap ——
     st.subheader("🗺️ Weights for features")
+    with st.expander("❓ What is this chart?"):
+        st.write(
+            "p is the array of p-values coming out of your feature-vs-performance correlation tests. "
+        )
     if rho_sel.size:
         fig, ax = plt.subplots(figsize=(6, max(3, len(feat_labels) * 0.3)))
         im = ax.imshow(rho_sel, aspect="auto", cmap="viridis")
@@ -108,19 +112,25 @@ def display_sifted_output(sifted_out, preprocessing_output):
     else:
         st.info("No silhouette scores provided.")
 
-    # —— 4. PCA 2D projection ——
-    st.subheader("🔬 Instances in 2D (PCA Projection)")
-    if sifted_out.x.shape[1] >= 2:
-        pca = PCA(n_components=2, random_state=0)
-        proj = pca.fit_transform(sifted_out.x)
-        fig2, ax2 = plt.subplots(figsize=(5, 5))
-        ax2.scatter(proj[:, 0], proj[:, 1], s=15, alpha=0.6)
-        ax2.set_xlabel("PC 1")
-        ax2.set_ylabel("PC 2")
-        ax2.set_title("PCA of Sifted Features")
-        st.pyplot(fig2)
-    else:
-        st.info("Not enough features for 2D PCA.")
+    # —— 4. Clust tale —— 
+    if sifted_out.clust is not None:
+
+        clust = sifted_out.clust
+        n_clusters = clust.shape[1]
+        col_names = [f"cluster{i+1}" for i in range(n_clusters)]
+
+        df = pd.DataFrame(clust, columns=col_names)
+        
+        st.subheader("Cluster Boolean Table")
+        st.dataframe(df)
+
+        selected_features = sifted_out.feat_labels
+        sel_df = pd.DataFrame(selected_features, columns=["Selected Features"])
+        st.subheader("Selected Features")
+        st.dataframe(sel_df)
+
+    else:
+        st.info("No Cluster Info Available.")
 
 
 def show():
@@ -341,7 +351,7 @@ def show():
             st.error(f"Error running Sifted stage: {str(e)}")
             st.code(traceback.format_exc())
 
-    if st.session_state.get("ran_sifted", False) or cache_exists("prelim_output.pkl"):
+    if st.session_state.get("ran_sifted", False):
         try:
             if "sifted_output" not in st.session_state and cache_exists("sifted_output.pkl"):
                 st.session_state["sifted_output"] = load_from_cache("sifted_output.pkl")
