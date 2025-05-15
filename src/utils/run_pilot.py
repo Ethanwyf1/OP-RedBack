@@ -1,10 +1,11 @@
 # utils/run_pilot.py
 
-from instancespace.stages.pilot import PilotStage, PilotInput, PilotOutput
-from instancespace.data.options import PilotOptions
-import numpy as np
-from numpy.typing import NDArray
 from typing import List
+
+import numpy as np
+from instancespace.data.options import PilotOptions
+from instancespace.stages.pilot import PilotInput, PilotOutput, PilotStage
+from numpy.typing import NDArray
 
 
 def run_pilot(
@@ -12,7 +13,7 @@ def run_pilot(
     y: NDArray[np.double],
     feat_labels: List[str],
     analytic: bool = True,
-    n_tries: int = 10
+    n_tries: int = 10,
 ) -> PilotOutput:
     """
     Run the PILOT stage with the given data and configuration.
@@ -35,18 +36,8 @@ def run_pilot(
     PilotOutput
         The result of the PILOT stage
     """
-    options = PilotOptions(
-        x0=None,
-        alpha=None,
-        analytic=analytic,
-        n_tries=n_tries
-    )
+    options = PilotOptions(x0=None, alpha=None, analytic=analytic, n_tries=n_tries)
 
-    pilot_input = PilotInput(
-        x=x,
-        y=y,
-        feat_labels=feat_labels,
-        pilot_options=options
-    )
+    pilot_input = PilotInput(x=x, y=y, feat_labels=feat_labels, pilot_options=options)
 
     return PilotStage._run(pilot_input)

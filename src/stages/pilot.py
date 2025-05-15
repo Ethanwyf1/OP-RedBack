@@ -1,12 +1,14 @@
-import streamlit as st
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-import numpy as np
 import io
 import zipfile
 
-from utils.cache_utils import load_from_cache, save_to_cache, delete_cache, cache_exists
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import streamlit as st
+
+from utils.cache_utils import (cache_exists, delete_cache, load_from_cache,
+                               save_to_cache)
 from utils.download_utils import create_stage_output_zip
 from utils.run_pilot import run_pilot
 
@@ -33,7 +35,9 @@ def show():
         else:
             algo_labels = [f"Algo {i}" for i in range(output.y_raw.shape[1])]
 
-    st.markdown("This stage projects high-dimensional instances into a 2D space for visualization and later analysis.")
+    st.markdown(
+        "This stage projects high-dimensional instances into a 2D space for visualization and later analysis."
+    )
 
     # === Projection Settings ===
     st.subheader("⚙️ Projection Settings")
@@ -54,7 +58,7 @@ def show():
             y=output.y_raw[:, selected_index].reshape(-1, 1),
             feat_labels=output.feat_labels,
             analytic=analytic_mode,
-            n_tries=n_tries
+            n_tries=n_tries,
         )
 
         save_to_cache(pilot_output, "pilot_output.pkl")
@@ -73,7 +77,9 @@ def show():
 
         # === Coloring Options ===
         st.subheader("🎨 Coloring Options")
-        color_feat = st.selectbox("Color points by feature or performance:", ["None", selected_algo] + output.feat_labels)
+        color_feat = st.selectbox(
+            "Color points by feature or performance:", ["None", selected_algo] + output.feat_labels
+        )
 
         # === Plot ===
         st.subheader("📈 Instance Projection (Z Matrix)")
@@ -92,7 +98,9 @@ def show():
             label = ""
 
         if color_vals is not None:
-            scatter = ax.scatter(Z[:, 0], Z[:, 1], c=color_vals, cmap="viridis", alpha=0.3, s=10, edgecolors="none")
+            scatter = ax.scatter(
+                Z[:, 0], Z[:, 1], c=color_vals, cmap="viridis", alpha=0.3, s=10, edgecolors="none"
+            )
             plt.colorbar(scatter, label=label)
         else:
             ax.scatter(Z[:, 0], Z[:, 1], color="royalblue", alpha=0.3, s=10, edgecolors="none")
@@ -113,8 +121,15 @@ def show():
 
         with st.expander("🔥 Heatmap of A Matrix"):
             fig2, ax2 = plt.subplots(figsize=(10, 2))
-            sns.heatmap(A, annot=True, cmap="coolwarm", cbar=True,
-                        xticklabels=output.feat_labels, yticklabels=["Z1", "Z2"], ax=ax2)
+            sns.heatmap(
+                A,
+                annot=True,
+                cmap="coolwarm",
+                cbar=True,
+                xticklabels=output.feat_labels,
+                yticklabels=["Z1", "Z2"],
+                ax=ax2,
+            )
             ax2.set_title("Projection Weight Heatmap")
             st.pyplot(fig2)
 
@@ -130,9 +145,7 @@ def show():
 
             # A matrix (2 rows: Z1 and Z2, columns: features)
             weights_df = pd.DataFrame(
-                pilot_output.a,
-                columns=output.feat_labels,
-                index=["Z1", "Z2"]
+                pilot_output.a, columns=output.feat_labels, index=["Z1", "Z2"]
             )
             weights_csv = weights_df.to_csv(index=True)
 
@@ -158,7 +171,7 @@ def show():
                 label="⬇️ Download PILOT Output (ZIP)",
                 data=zip_buffer,
                 file_name="pilot_output.zip",
-                mime="application/zip"
+                mime="application/zip",
             )
         else:
             st.warning("⚠️ No PILOT cache found. Please run the stage first.")
@@ -174,4 +187,3 @@ def show():
                 st.session_state["ran_pilot"] = False
             else:
                 st.warning("⚠️ No PILOT cache found to delete.")
-

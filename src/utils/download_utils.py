@@ -1,7 +1,9 @@
-import pandas as pd
-import zipfile
 import io
+import zipfile
 from typing import Optional
+
+import pandas as pd
+
 
 def create_stage_output_zip(
     x: pd.DataFrame,
@@ -11,7 +13,7 @@ def create_stage_output_zip(
     feature_filename: str = "features.csv",
     performance_filename: str = "performance.csv",
     include_metadata_txt: bool = True,
-    metadata_description: Optional[str] = None
+    metadata_description: Optional[str] = None,
 ) -> bytes:
     """
     Creates a ZIP file in memory containing stage output data (features + performance).

@@ -1,6 +1,7 @@
-import pickle
 import os
+import pickle
 from typing import Any
+
 
 def save_to_cache(obj: Any, filename: str, folder: str = "cache") -> None:
     """
@@ -15,6 +16,7 @@ def save_to_cache(obj: Any, filename: str, folder: str = "cache") -> None:
     filepath = os.path.join(folder, filename)
     with open(filepath, "wb") as f:
         pickle.dump(obj, f)
+
 
 def load_from_cache(filename: str, folder: str = "cache") -> Any:
     """
@@ -31,6 +33,7 @@ def load_from_cache(filename: str, folder: str = "cache") -> Any:
     with open(filepath, "rb") as f:
         return pickle.load(f)
 
+
 def cache_exists(filename: str, folder: str = "cache") -> bool:
     """
     Check if a cache file exists.
@@ -43,6 +46,7 @@ def cache_exists(filename: str, folder: str = "cache") -> bool:
     - True if file exists, else False
     """
     return os.path.exists(os.path.join(folder, filename))
+
 
 def export_cache_as_bytes(filename: str, folder: str = "cache") -> bytes:
     """
@@ -57,7 +61,8 @@ def export_cache_as_bytes(filename: str, folder: str = "cache") -> bytes:
     filepath = os.path.join(folder, filename)
     with open(filepath, "rb") as f:
         return f.read()
-    
+
+
 def delete_cache(filename: str, folder: str = "cache") -> bool:
     """
     Delete a specific cache file if it exists.
@@ -74,4 +79,3 @@ def delete_cache(filename: str, folder: str = "cache") -> bool:
         os.remove(filepath)
         return True
     return False
-

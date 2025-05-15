@@ -1,21 +1,26 @@
-import streamlit as st
-import pandas as pd
 import os
+
+import pandas as pd
+import streamlit as st
+
 
 def show():
     st.header("🏠 Welcome to the Instance Space Visualizer")
 
-    st.markdown("""
+    st.markdown(
+        """
     This platform provides an interactive environment for conducting **Instance Space Analysis (ISA)** —  
     a data-driven method to evaluate algorithm performance across diverse instances.
 
     - 📦 Upload your metadata and configuration files  
     - 🔍 Explore feature and algorithm relationships  
     - 🧠 Visualize performance footprints   
-    """)
+    """
+    )
 
     st.markdown("### 🔁 ISA Pipeline Overview")
-    st.markdown("""
+    st.markdown(
+        """
     1. **Preprocessing** – Clean and normalize your data  
     2. **PRELIM** – Label good/bad performance using thresholds  
     3. **SIFTED** – Select relevant features  
@@ -23,7 +28,8 @@ def show():
     5. **CLOISTER** – Define instance space boundaries  
     6. **PYTHIA** – Predict the best algorithm for new instances  
     7. **TRACE** – Visualize algorithm footprints and evaluate purity  
-    """)
+    """
+    )
 
     st.info("📌 Select a stage from the sidebar to begin.")
 
