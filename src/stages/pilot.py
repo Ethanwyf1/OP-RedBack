@@ -75,10 +75,13 @@ def show():
         error = pilot_output.error
         r2 = pilot_output.r2
 
+        # Infer feature labels used in A matrix from original feature labels
+        inferred_feat_labels = output.feat_labels[:A.shape[1]]
+
         # === Coloring Options ===
         st.subheader("🎨 Coloring Options")
         color_feat = st.selectbox(
-            "Color points by feature or performance:", ["None", selected_algo] + output.feat_labels
+            "Color points by feature or performance:", ["None", selected_algo] + inferred_feat_labels
         )
 
         # === Plot ===
@@ -90,8 +93,8 @@ def show():
         if color_feat == selected_algo:
             color_vals = output.y_raw[:, selected_index]
             label = f"{selected_algo} Performance"
-        elif color_feat in output.feat_labels:
-            color_vals = output.x[:, output.feat_labels.index(color_feat)]
+        elif color_feat in inferred_feat_labels:
+            color_vals = output.x[:, inferred_feat_labels.index(color_feat)]
             label = color_feat
         else:
             color_vals = None
@@ -126,7 +129,7 @@ def show():
                 annot=True,
                 cmap="coolwarm",
                 cbar=True,
-                xticklabels=output.feat_labels,
+                xticklabels=inferred_feat_labels,
                 yticklabels=["Z1", "Z2"],
                 ax=ax2,
             )
@@ -145,7 +148,7 @@ def show():
 
             # A matrix (2 rows: Z1 and Z2, columns: features)
             weights_df = pd.DataFrame(
-                pilot_output.a, columns=output.feat_labels, index=["Z1", "Z2"]
+                pilot_output.a, columns=inferred_feat_labels, index=["Z1", "Z2"]
             )
             weights_csv = weights_df.to_csv(index=True)
 
