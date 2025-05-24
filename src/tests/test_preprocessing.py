@@ -2,24 +2,26 @@
 Testcases for the preprocessing
 """
 
-import pandas as pd
 import io
-import sys
 import os
+import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import pandas as pd
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from instancespace.data.options import (ParallelOptions, PrelimOptions,
+                                        SelvarsOptions, SiftedOptions)
+from instancespace.stages.prelim import PrelimInput, PrelimStage
+from instancespace.stages.preprocessing import PreprocessingOutput
+from instancespace.stages.sifted import SiftedInput, SiftedStage
 
 from utils.run_preprocessing import run_preprocessing
-from instancespace.stages.preprocessing import PreprocessingOutput
-
-from instancespace.stages.prelim import PrelimStage, PrelimInput
-from instancespace.stages.sifted import SiftedStage, SiftedInput
-from instancespace.data.options import SelvarsOptions, PrelimOptions, SiftedOptions, ParallelOptions
-
 
 # @pytest.fixture
 # def metadata_path():
 #     return "src/tests/metadata.csv"
+
 
 def test_run_preprocessing_returns_output(metadata_path):
     # Run the preprocessing with default feature and algorithm selection
@@ -45,7 +47,6 @@ print(preprocessing_output)
 #     min_distance=0.0,
 #     density_flag=False
 # )
-
 
 
 # prelim_opts = PrelimOptions(
@@ -122,7 +123,7 @@ print(preprocessing_output)
 # p_vals     = prelim_out.p
 # inst_lbls  = prelim_out.instlabels
 # s_series   = prelim_out.s             # could be None
-# data_dense = prelim_out.data_dense 
+# data_dense = prelim_out.data_dense
 
 
 # sifted_in = SiftedInput(
