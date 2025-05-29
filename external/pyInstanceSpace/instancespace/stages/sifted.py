@@ -908,7 +908,7 @@ class SiftedStage(Stage[SiftedInput, SiftedOutput]):
             random_seed=int(rng.integers(1000)),
             init_range_low=1,
             init_range_high=x_aux.shape[1],
-            save_solutions=True,
+            save_solutions=False,
             parallel_processing=(
                 [
                     "process",

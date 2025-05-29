@@ -13,6 +13,8 @@ seaborn
 pytest
 flake8
 openai
+plotly
+bokeh
 
 # Install instancespace package
 instancespace @ git+https://github.com/andremun/pyInstanceSpace.git

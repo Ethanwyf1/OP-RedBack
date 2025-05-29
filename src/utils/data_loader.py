@@ -1,10 +1,14 @@
-from typing import Union, IO
+import tempfile
+from typing import IO, Union
+
 from instancespace.data.metadata import from_csv_file
 from instancespace.data.options import SelvarsOptions
 from instancespace.stages.preprocessing import PreprocessingInput
-import tempfile
 
-def load_metadata_and_create_input(file_source: Union[str, IO], selvars: SelvarsOptions) -> PreprocessingInput:
+
+def load_metadata_and_create_input(
+    file_source: Union[str, IO], selvars: SelvarsOptions
+) -> PreprocessingInput:
     """
     Load metadata and convert it into a PreprocessingInput object.
 
