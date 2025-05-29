@@ -112,24 +112,24 @@ def display_sifted_output(sifted_out, preprocessing_output):
     else:
         st.info("No silhouette scores provided.")
 
-    # —— 4. Clust tale —— 
-    if sifted_out.clust is not None:
-
-        clust = sifted_out.clust
-        n_clusters = clust.shape[1]
-        col_names = [f"cluster{i+1}" for i in range(n_clusters)]
-
-        df = pd.DataFrame(clust, columns=col_names)
-        
-        st.subheader("Cluster Boolean Table")
-        st.dataframe(df)
-
-        selected_features = sifted_out.feat_labels
-        sel_df = pd.DataFrame(selected_features, columns=["Selected Features"])
-        st.subheader("Selected Features")
-        st.dataframe(sel_df)
-
-    else:
+
+    if sifted_out.clust is not None:
+
+        clust = sifted_out.clust
+        n_clusters = clust.shape[1]
+        col_names = [f"cluster{i+1}" for i in range(n_clusters)]
+
+        df = pd.DataFrame(clust, columns=col_names)
+        
+        st.subheader("Cluster Boolean Table")
+        st.dataframe(df)
+
+        selected_features = sifted_out.feat_labels
+        sel_df = pd.DataFrame(selected_features, columns=["Selected Features"])
+        st.subheader("Selected Features")
+        st.dataframe(sel_df)
+
+    else:
         st.info("No Cluster Info Available.")
 
 
@@ -337,7 +337,6 @@ def show():
             sifted_output = SiftedStage._run(sifted_in)
 
             if sifted_output is not None:
-                print(sifted_output)
 
                 # Save to session state and cache
                 st.session_state["sifted_output"] = sifted_output
@@ -353,12 +352,14 @@ def show():
 
     if st.session_state.get("ran_sifted", False):
         try:
+            
             if "sifted_output" not in st.session_state and cache_exists("sifted_output.pkl"):
                 st.session_state["sifted_output"] = load_from_cache("sifted_output.pkl")
                 st.session_state["ran_sifted"] = True
 
             sifted_output = st.session_state["sifted_output"]
             display_sifted_output(sifted_output, preprocessing_output)
+
             st.subheader("🗑️ Cache Management")
             if st.button("❌ Delete Sifted Cache"):
                 success = delete_cache("sifted_output.pkl")
