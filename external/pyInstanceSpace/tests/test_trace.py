@@ -34,7 +34,7 @@ def test_trace_pythia() -> None:
     """
     # Define the path to the file
     main_dir = Path(__file__).parent
-
+    
     algo_labels_path = main_dir / "test_data/trace_csvs/algolabels.txt"
 
     # Use Path.open() to open the file

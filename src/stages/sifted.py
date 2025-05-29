@@ -132,19 +132,6 @@ def display_sifted_output(sifted_out, preprocessing_output):
     else:
         st.info("No Cluster Info Available.")
 
-    # # —— 4. PCA 2D projection —— 
-    # st.subheader("🔬 Instances in 2D (PCA Projection)")
-    # if sifted_out.x.shape[1] >= 2:
-    #     pca = PCA(n_components=2, random_state=0)
-    #     proj = pca.fit_transform(sifted_out.x)
-    #     fig2, ax2 = plt.subplots(figsize=(5,5))
-    #     ax2.scatter(proj[:,0], proj[:,1], s=15, alpha=0.6)
-    #     ax2.set_xlabel("PC 1")
-    #     ax2.set_ylabel("PC 2")
-    #     ax2.set_title("PCA of Sifted Features")
-    #     st.pyplot(fig2)
-    # else:
-    #     st.info("Not enough features for 2D PCA.")
 
 def show():
     st.header("🧹 SIFTED Stage")
