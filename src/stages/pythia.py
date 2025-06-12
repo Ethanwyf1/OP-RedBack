@@ -1,223 +1,314 @@
 import os
-import pandas as pd
-import numpy as np
-import streamlit as st
-import plotly.express as px
+import multiprocessing as mp
+from collections import Counter
+from pathlib import Path
 
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import streamlit as st
+
+from instancespace.data.options import ParallelOptions, PythiaOptions
 from utils.cache_utils import cache_exists, delete_cache, load_from_cache, save_to_cache
 from utils.download_utils import create_stage_output_zip
 from utils.run_pythia import run_pythia
-from instancespace.data.options import PythiaOptions, ParallelOptions
-from collections import Counter
 
-def show():
+# ─────────────────────────────────────────────
+# Helper colour maps
+# ─────────────────────────────────────────────
+DISCRETE_LABEL_COLORS = {"Good": "#2c83a0", "Bad": "#d6278a"}
+
+
+def _algo_colors(labels: list[str]) -> dict[str, str]:
+    palette = px.colors.qualitative.Bold
+    return {lbl: palette[i % len(palette)] for i, lbl in enumerate(labels)}
+
+
+# ─────────────────────────────────────────────
+# Stats helpers
+# ─────────────────────────────────────────────
+def make_portfolio_table(
+    selection0: np.ndarray, selection1: np.ndarray, labels: list[str]
+) -> pd.DataFrame:
+    """Return table of counts per algorithm for selection0 / selection1."""
+    c0, c1 = Counter(selection0), Counter(selection1)
+    return pd.DataFrame(
+        {
+            "Algorithm": labels,
+            "Primary (selection0)": [c0.get(i, 0) for i in range(len(labels))],
+            "Fallback (selection1)": [c1.get(i, 0) for i in range(len(labels))],
+        }
+    )
+
+
+def make_individual_table(label_vector: np.ndarray, algo_name: str) -> pd.DataFrame:
+    """Return good/bad counts for a single algorithm."""
+    good = int(np.sum(label_vector == 1))
+    bad = int(np.sum(label_vector == 0))
+    return pd.DataFrame(
+        [
+            {
+                "Algorithm": algo_name,
+                "Good (1)": good,
+                "Bad (0)": bad,
+                "Total": good + bad,
+            }
+        ]
+    )
+
+
+# ─────────────────────────────────────────────
+# Streamlit page entry-point
+# ─────────────────────────────────────────────
+def show() -> None:
     st.header("🤖 PYTHIA Stage – Automated Algorithm Selection")
 
-    # --- Step 1: Check Dependencies ---
-    required_cache = ["pilot_output.pkl", "prelim_output.pkl", "sifted_output.pkl", "preprocessing_output.pkl"]
+    # --- dependency check ------------------------------------------------------
+    required_cache = [
+        "pilot_output.pkl",
+        "prelim_output.pkl",
+        "sifted_output.pkl",
+        "preprocessing_output.pkl",
+    ]
     missing = [f for f in required_cache if not cache_exists(f)]
     if missing:
-        st.error(f"🚫 Required inputs not found: {', '.join(missing)}. Please run previous stages first.")
+        st.error(
+            f"🚫 Required inputs not found: {', '.join(missing)}. "
+            "Please run previous stages first."
+        )
         return
 
-    # --- Step 2: Allow user to configure PYTHIA Options ---
+ # --- configuration expander ---------------------------------------
     with st.expander("⚙️ PYTHIA Configuration", expanded=False):
-        cv_folds = st.slider("Number of CV folds", min_value=2, max_value=10, value=5)
-        st.caption("🔁 Controls how many folds are used in cross-validation. More folds improve accuracy estimation but increase runtime.")
+        cv_folds = st.slider("Number of CV folds", 2, 10, 5)
+        st.caption("🔁 Controls how many folds are used in cross-validation.")
 
         use_poly_kernel = st.checkbox("Use Polynomial Kernel", value=False)
-        st.caption("⚖️ Enable polynomial kernel for SVM. Recommended for larger datasets or complex boundaries.")
+        st.caption("⚖️ Enable polynomial kernel for SVM.")
 
         st.checkbox("Use Cost-Sensitive Weights", value=False, disabled=True)
-        st.caption("🖐️ *This feature is under development and currently not supported in model training.*")
+        st.caption("🖐️ Cost-sensitive weights not supported yet.")
 
         use_bayes_opt = st.checkbox(
-            "Use Bayesian Optimization (default: Grid Search)", 
-            value=False, 
-            help="If checked, Bayesian Optimization will be used instead of Grid Search."
+            "Use Bayesian Optimization (default: Grid Search)", value=False
         )
-        if use_bayes_opt:
-            st.caption("🧠 Bayesian Optimization: Efficient for large or continuous hyperparameter spaces. "
-                       "Faster convergence but may miss global optima in some cases.")
-        else:
-            st.caption("🔍 Grid Search (default): Exhaustive search over a fixed hyperparameter grid. "
-                       "More reliable for small search spaces but slower.")
+        st.caption("🧠 Bayesian Optimization is fast for wide search spaces."
+                   if use_bayes_opt else "🔍 Grid Search exhaustively explores a fixed grid.")
 
         use_parallel = st.checkbox("Enable Parallel Training", value=False)
-        st.caption("⚡ Enable parallel SVM training. Useful for large datasets with many algorithms.")
+        n_cores = st.number_input("Number of Cores", 1, mp.cpu_count(), 1)
 
-        n_cores = st.number_input("Number of Cores (for parallelism)", min_value=1, max_value=16, value=1)
-        st.caption("💻 Number of CPU cores to use for parallel processing. Only applies when parallel training is enabled.")
-
-    # Construct options objects
     pythia_opts = PythiaOptions(
         cv_folds=cv_folds,
         is_poly_krnl=use_poly_kernel,
         use_weights=False,
         use_grid_search=not use_bayes_opt,
-        params=None
+        params=None,
     )
-    parallel_opts = ParallelOptions(
-        flag=use_parallel,
-        n_cores=n_cores
-    )
+    parallel_opts = ParallelOptions(flag=use_parallel, n_cores=int(n_cores))
 
-    # --- Step 3: Run PYTHIA ---
-    if st.button("🚀 Run PYTHIA", key="run_pythia_btn"):
-        output = run_pythia(
-            pythia_options=pythia_opts,
-            parallel_options=parallel_opts
-        )
-        st.session_state["pythia_output"] = output
+    # --- run PYTHIA ------------------------------------------------------------
+    if st.button("🚀 Run PYTHIA", key="run_pythia_btn") or not cache_exists(
+        "pythia_output.pkl"
+    ):
+        with st.spinner("Running PYTHIA – this may take a while …"):
+            output = run_pythia(
+                pythia_options=pythia_opts, parallel_options=parallel_opts
+            )
         save_to_cache(output, "pythia_output.pkl")
+        st.session_state["pythia_output"] = output
         st.toast("✅ PYTHIA stage completed successfully!", icon="🤖")
 
-    # --- Step 4: Load Output ---
-    output = st.session_state.get("pythia_output") if "pythia_output" in st.session_state else \
-        (load_from_cache("pythia_output.pkl") if cache_exists("pythia_output.pkl") else None)
-
+    # --- load outputs ----------------------------------------------------------
+    output = st.session_state.get("pythia_output") or load_from_cache(
+        "pythia_output.pkl"
+    )
     if output is None:
-        st.warning("⚠️ PYTHIA output not available. Please click **Run PYTHIA**.")
+        st.warning("⚠️ PYTHIA output not available. Please run the stage.")
         return
-
     st.success("✅ PYTHIA Output Loaded")
 
-    algo_labels = output.pythia_summary["Algorithms"][:len(output.accuracy)]
+    preprocessing_output = load_from_cache("preprocessing_output.pkl")
+    pilot_out = load_from_cache("pilot_output.pkl")
+    prelim_out = load_from_cache("prelim_output.pkl")
 
-    # --- Step 6: Visualization Controls ---
-    st.subheader("📽️ Predicted Best Algorithm in 2D Instance Space")
-    pilot_output = load_from_cache("pilot_output.pkl")
-    Z = pilot_output.z
+    algo_labels: list[str] = list(getattr(preprocessing_output, "algo_labels", []))
+    if not algo_labels:
+        algo_labels = output.pythia_summary["Algorithms"][: len(output.accuracy)].tolist()
 
-    selection_mode = st.radio(
-        "🎯 Which algorithm selection to visualize?",
-        options=["Primary Selection (selection0)", "Fallback Selection (selection1)"],
-        index=0,
-        horizontal=True
-    )
-    algo_indices = output.selection0 if selection_mode.startswith("Primary") else output.selection1
+    algo_color_map = _algo_colors(algo_labels)
+    Z = pilot_out.z
 
-    visible_algos = st.multiselect(
-        "🔍 Select algorithms to highlight (others will be dimmed)",
-        options=algo_labels,
-        default=algo_labels
-    )
+    # --- visualisation controls ------------------------------------------------
+    st.subheader("📽️ 2-D Instance Space Visualisation")
 
-    filter_mode = st.radio(
-        "🔍 Filter by Prediction Outcome",
-        options=["Show All", "Only Predicted Good (1)", "Only Predicted Bad (0)"],
-        index=0,
-        horizontal=True
-    )
+    if vis_mode := st.radio("Analysis Mode", ["Individual Algorithm", "Portfolio"]):
+        if vis_mode == "Individual Algorithm":
+            data_src = st.radio(
+                "Data Source",
+                ["Training (ground-truth)", "Prediction (CV prediction)", "Prediction (full-fit prediction)"],
+                index=0,
+            )
+        else:  # Portfolio
+            data_src = st.radio(
+                "Data Source",
+                ["Training (y_best)", "Prediction"],   # ← only one training flavour
+                index=0,
+            )
 
-    y_hat = output.y_hat
-    assert len(algo_indices) == y_hat.shape[0]
-    predictions = np.array([
-        y_hat[i, algo_indices[i]] if 0 <= algo_indices[i] < y_hat.shape[1] else -1
-        for i in range(len(algo_indices))
-    ])
+    # ============================== INDIVIDUAL =================================
+    if vis_mode.startswith("Individual"):
+        algo = st.selectbox("Choose algorithm", algo_labels)
+        k = algo_labels.index(algo)
 
-    num_total = np.sum((predictions == 0) | (predictions == 1))
-    num_good = np.sum(predictions == 1)
-    num_bad = np.sum(predictions == 0)
-    num_invalid = np.sum(predictions == -1)
+        if data_src.startswith("Training (ground"):
+            labels_bin = prelim_out.y_bin[:, k].astype(int)  # ground-truth labels
+            title_suffix = "TRAINING (y_bin: ground-truth)"
+        elif data_src.startswith("Prediction (CV"):
+            labels_bin = output.y_sub[:, k].astype(int)  # CV prediction
+            title_suffix = "PREDICTION (y_sub: CV prediction)"
+        else:  # Prediction
+            labels_bin = output.y_hat[:, k].astype(int)  # full-fit prediction
+            title_suffix = "PREDICTION (y_hat: full-fit)"
 
-    # Create a one-row dataframe with prediction summary (clean version without emojis)
-    summary_df = pd.DataFrame([{
-        "Good (1)": str(num_good),
-        "Bad (0)": str(num_bad),
-        "Invalid": str(num_invalid),
-        "Total Valid": f"{num_total} / {len(predictions)}"
-    }])
+        labels_str = np.where(labels_bin == 1, "Good", "Bad")
+        filt = st.radio("Filter", ["All", "Only Good", "Only Bad"], horizontal=True)
+        mask = (
+            (labels_str == "Good")
+            if filt == "Only Good"
+            else (labels_str == "Bad")
+            if filt == "Only Bad"
+            else np.ones_like(labels_str, dtype=bool)
+        )
 
-    st.subheader("Prediction Summary")
-    st.dataframe(summary_df, use_container_width=True)
-    
-    algo_counts = Counter(algo_indices)
-    label_map = output.pythia_summary["Algorithms"]
-    st.markdown("**🧴 Algorithm Selection Frequency:**")
-    for idx, count in algo_counts.items():
-        label = label_map[idx] if idx < len(label_map) else f"[invalid idx {idx}]"
-        st.markdown(f"- `{label}`: {count} instances selected")
+        df_viz = pd.DataFrame(
+            {"Z1": Z[mask, 0], "Z2": Z[mask, 1], "Label": labels_str[mask]}
+        )
+        fig = px.scatter(
+            df_viz,
+            x="Z1",
+            y="Z2",
+            color="Label",
+            color_discrete_map=DISCRETE_LABEL_COLORS,
+            category_orders={"Label": ["Good", "Bad"]},
+            title=f"{algo} • {title_suffix}",
+            width=800,
+            height=800,
+        )
+        fig.update_layout(coloraxis_showscale=False, legend_title_text="Outcome")
+        fig.update_traces(marker=dict(size=8, line=dict(width=0.5, color="black")))
+        st.plotly_chart(fig, use_container_width=True)
 
-    df_viz = pd.DataFrame({
-        "Z1": Z[:, 0],
-        "Z2": Z[:, 1],
-        "Selected Algorithm": [algo_labels[i] for i in algo_indices],
-        "Prediction": predictions
-    })
+        st.markdown("#### Good/Bad Count")
+        st.dataframe(make_individual_table(labels_bin, algo), use_container_width=True)
 
-    if filter_mode == "Only Predicted Good (1)":
-        df_viz = df_viz[df_viz["Prediction"] == 1]
-    elif filter_mode == "Only Predicted Bad (0)":
-        df_viz = df_viz[df_viz["Prediction"] == 0]
+    # =============================== PORTFOLIO =================================
+    else:  # vis_mode == "Portfolio"
+        if data_src.startswith("Training"):
+            y_best = load_from_cache("prelim_output.pkl").y_best    # (n_instances,) float
+            df_viz = pd.DataFrame(
+                {
+                    "Z1": Z[:, 0],
+                    "Z2": Z[:, 1],
+                    "BestPerf": y_best,
+                }
+            )
+            fig = px.scatter(
+                df_viz,
+                x="Z1",
+                y="Z2",
+                color="BestPerf",
+                color_continuous_scale="Viridis",
+                title="Portfolio • TRAINING (y_best)",
+                width=800,
+                height=800,
+            )
+            fig.update_traces(marker=dict(size=8, line=dict(width=0.4, color="black")))
+            st.plotly_chart(fig, use_container_width=True)
 
-    df_viz["Color"] = [
-        algo if algo in visible_algos else "Dimmed"
-        for algo in df_viz["Selected Algorithm"]
-    ]
+        else:  # Prediction (Selector)
+            sel_variant = st.radio(
+                "Selection variant",
+                ["Primary (selection0)", "Fallback (selection1)"],
+                horizontal=True,
+            )
+            selections = (
+                output.selection0
+                if sel_variant.startswith("Primary")
+                else output.selection1
+            )
 
-    color_map = {
-        "Dimmed": "lightgrey",
-        **{label: px.colors.qualitative.Bold[i % 10] for i, label in enumerate(algo_labels)}
-    }
+            highlight = st.multiselect(
+                "Highlight algorithms", algo_labels, default=algo_labels
+            )
+            color_map = {"Dimmed": "lightgrey", **algo_color_map}
 
-    fig = px.scatter(
-        df_viz,
-        x="Z1",
-        y="Z2",
-        color="Color",
-        title="Predicted Best Algorithm per Instance (Filtered by y_hat)",
-        color_discrete_map=color_map,
-        opacity=0.7
-    )
-    fig.update_traces(marker=dict(size=8, line=dict(width=0.5, color='DarkSlateGrey')))
-    fig.update_layout(
-    autosize=False,
-    width=800,
-    height=800
-    )
-    st.plotly_chart(fig, use_container_width=True)
+            df_viz = pd.DataFrame(
+                {
+                    "Z1": Z[:, 0],
+                    "Z2": Z[:, 1],
+                    "Algo": [algo_labels[i] for i in selections],
+                }
+            )
+            df_viz["Colour"] = [
+                a if a in highlight else "Dimmed" for a in df_viz["Algo"]
+            ]
 
-    # --- Step 7: Summary Table ---
+            fig = px.scatter(
+                df_viz,
+                x="Z1",
+                y="Z2",
+                color="Colour",
+                color_discrete_map=color_map,
+                hover_data=["Algo"],
+                title=f"Portfolio • PREDICTION – {sel_variant}",
+                width=800,
+                height=800,
+            )
+            fig.update_traces(marker=dict(size=8, line=dict(width=0.4, color="black")))
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.markdown("#### Selection Counts (all algorithms)")
+            st.dataframe(
+                make_portfolio_table(
+                    output.selection0, output.selection1, algo_labels
+                ),
+                use_container_width=True,
+            )
+
+    # --- summary ---------------------------------------------------------------
     st.subheader("📋 Summary of All Algorithm Performances")
-    summary_df = output.pythia_summary.copy()
-    summary_df = summary_df.replace("", np.nan).infer_objects(copy=False)
+    summary_df = output.pythia_summary.replace("", np.nan).infer_objects(copy=False)
     st.dataframe(summary_df, use_container_width=True)
 
-    # --- Step 8: Download ---
+    # --- download ZIP ----------------------------------------------------------
     st.subheader("📅 Download Cached PYTHIA Output")
     if cache_exists("pythia_output.pkl"):
         df_features = pd.DataFrame(output.w)
-        df_probs = pd.DataFrame(
-            output.pr0_hat,
-            columns=output.pythia_summary["Algorithms"][:len(output.accuracy)]
+        df_probs = pd.DataFrame(output.pr0_hat, columns=algo_labels)
+        instance_labels = getattr(
+            load_from_cache("preprocessing_output.pkl"), "inst_labels", None
         )
-        preprocessing_output = load_from_cache("preprocessing_output.pkl")
-        instance_labels = getattr(preprocessing_output, "inst_labels", None)
-
-        zip_data = create_stage_output_zip(
+        zip_bytes = create_stage_output_zip(
             x=df_features,
             y=df_probs,
             instance_labels=instance_labels,
             source_labels=None,
-            metadata_description="Cached output from PYTHIA stage (including predictions and classifier results)."
+            metadata_description="PYTHIA stage cached output",
         )
-
         st.download_button(
-            label="⬇️ Download PYTHIA Output (ZIP)",
-            data=zip_data,
-            file_name="pythia_output.zip",
-            mime="application/zip"
+            "⬇️ Download PYTHIA Output (ZIP)",
+            zip_bytes,
+            "pythia_output.zip",
+            mime="application/zip",
         )
     else:
         st.warning("⚠️ No cached PYTHIA output found.")
 
-    # --- Step 9: Cache Management ---
-    st.subheader("🗑️ Cache Management")
+    # --- cache management ------------------------------------------------------
+    st.markdown("---")
     if st.button("❌ Delete PYTHIA Cache"):
-        success = delete_cache("pythia_output.pkl")
-        if success:
+        if delete_cache("pythia_output.pkl"):
             st.success("🗑️ PYTHIA cache deleted.")
         else:
             st.warning("⚠️ No PYTHIA cache file found to delete.")
